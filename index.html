@@ -131,8 +131,9 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.9.0',APP_DATE='21/11/2026';
+const APP_VERSION='2.9.1',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.9.1','21/11/2026',['Animation « Curl barre courte banc incliné 45° » : barre courte tenue à deux mains, posée au niveau des genoux au départ, montée jusqu’au menton ; un seul câble de la poulie basse vers le centre de la barre','Exercices poulie avec « barre courte », « barre droite » ou « barre V » dans le nom : la barre est dessinée entre les mains avec un seul câble']],
  ['2.9.0','21/11/2026',['Animations 3D : « 🛠 L’animation n’est pas correcte ? » dans chaque démo — choisis une autre animation (appliquée tout de suite) et décris l’erreur','Réglages → Animations 3D : copie de tous les signalements en un clic, à coller dans la conversation pour correction','Nouvelle animation : curl assis sur banc incliné à 45° (poulie basse devant) — Curl barre courte banc incliné 45°']],
  ['2.8.1','21/11/2026',['« Machine » fusionné dans « Poulie » : un seul type de matériel (Leg curl assis et Presse pectorale assise passent en Poulie), lieux et libellés mis à jour']],
  ['2.8.0','21/11/2026',['Bouton 👁 (ou 🎬 si des vidéos sont enregistrées) à côté de chaque exercice partout : modules (liste et éditeur), programmes (« Voir les séances et leurs exercices »), aperçu de séance, remplacements ⇄, bilan de séance, Progrès → Exercices, sélecteur d’exercices']],
@@ -991,7 +992,7 @@ const PAT={
  lat_raise:{A:{sh:[0,.14],el:[-.28,0],hy:HP},B:{sh:[0,1.5],el:[-.28,0],hy:HP},cam:[.15,1.25,3]},
  press:{A:{sh:[-.2,1.45],el:[0,1.5]},B:{sh:[-.2,2.78],el:[0,.08]},cam:[.4,1.35,3.1]},
  curl:{A:{sh:[-.05,.1],el:[-.15,0],hy:HP},B:{sh:[-.12,.1],el:[-2.35,0],hy:HP},cam:[1.15],cable:[0,.15,.55],anc:{bas:[0,.15,.55],median:[0,1.0,.7],haut:[0,1.9,.6]}},
- curl_incline:{A:{r:[-PI/4,0],hp:[-.8,.18],kn:1.45,sh:[.72,.12],el:[-.1,0],hy:HP},B:{r:[-PI/4,0],hp:[-.8,.18],kn:1.45,sh:[.6,.12],el:[-2.25,0],hy:HP},ground:'pelvis',pt:[.58,.25],bench:{inc:PI/4},cam:[1.35],cable:[0,.15,1.15],anc:{bas:[0,.15,1.15],median:[0,.9,1.15],haut:[0,1.9,.9]}},
+ curl_incline:{A:{r:[-PI/4,0],hp:[-.8,.18],kn:1.45,sh:[-.24,.04],el:[-.04,0],hy:HP},B:{r:[-PI/4,0],hp:[-.8,.18],kn:1.45,sh:[-.3,.04],el:[-2.1,0],hy:HP},ground:'pelvis',pt:[.58,.25],bench:{inc:PI/4},cam:[1.35],cable:[0,.15,1.25],anc:{bas:[0,.15,1.25],median:[0,.9,1.2],haut:[0,1.9,.9]}},
  hammer:{A:{sh:[-.05,.1],el:[-.15,0],hy:0},B:{sh:[-.12,.1],el:[-2.3,0],hy:0},cam:[1.15],cable:[0,.15,.55],anc:{bas:[0,.15,.55],median:[0,1.0,.7],haut:[0,1.9,.6]}},
  pushdown:{A:{sp:.15,sh:[-.3,.1],el:[-1.9,0],hy:HP},B:{sp:.15,sh:[-.15,.1],el:[-.1,0],hy:HP},cam:[1.2,1.3,3.2],anc:{haut:[0,2.15,.55],median:[0,2.15,.55],bas:[0,2.15,.55]},cable:[0,2.15,.55]},
  overhead_ext:{A:{sh:[-2.95,.12],el:[-2.2,0],hy:HP},B:{sh:[-2.95,.12],el:[-.1,0],hy:HP},cam:[1.3,1.35,3.2],cable:[0,.2,-.7],anc:{bas:[0,.15,-.7],median:[0,1.1,-.8],haut:[0,1.1,-.8]}},
@@ -1114,12 +1115,14 @@ function viewer3d(el,ex){
  const showAnchor=(p)=>{const v=new T.Vector3(...p);const o=new T.Mesh(new T.SphereGeometry(.035,16,12),IRON);o.position.copy(v);sc.add(o);return v};
  if(q==='halteres')dumb();
  if(q==='barre'||q==='barre_el')barbell=mkBar(q==='barre'&&pk==='deadlift');
+ let sbar=null;if(q!=='barre'&&q!=='barre_el'&&(/barre courte|barre droite|barre v\b/i.test(ex.name||'')||ex.grip==='bar')){sbar=new T.Group();const c=new T.Mesh(new T.CylinderGeometry(.013,.013,.42,12),STEEL);c.rotation.z=HP;c.castShadow=true;sbar.add(c);sc.add(sbar)}
  if(q==='traction'||P.ground==='hands'){pullBar=cyl(.018,STEEL);pullBar.position.set(0,P.barY||2.25,0);pullBar.rotation.z=HP;pullBar.scale.set(1,1.4,1)}
  const L=[];/* lignes dynamiques: {o, a:()=>Vector3, b:()=>Vector3} */
  const wp=o=>{const v=new T.Vector3();o.getWorldPosition(v);return v};
  if(q==='poulie'||q==='machine'||(q==='elastique'&&ex.anchor&&ex.anchor!=='pieds')){const m=q==='elastique'?BAND:CABLE,r=q==='elastique'?.012:.006;
   if(P.footBand){const A=showAnchor(ancFor());L.push({o:cyl(r,m),a:()=>A,b:()=>wp(man.legs[1].sole)})}
   else if(P.sides){man.arms.forEach(a=>{const p=ancFor().slice();p[0]=a.s*Math.abs(p[0]);const A=showAnchor(p);L.push({o:cyl(r,m),a:()=>A,b:()=>wp(a.hand)})})}
+  else if(sbar){const A=showAnchor(ancFor());L.push({o:cyl(r,m),a:()=>A,b:()=>wp(sbar)})}
   else{const A=showAnchor(ancFor());man.arms.forEach(a=>L.push({o:cyl(r,m),a:()=>A,b:()=>wp(a.hand)}))}
   if(q!=='elastique'){const A=new T.Vector3(...(P.footBand?ancFor():P.sides?[0,0,0]:ancFor()));const wheel=new T.Mesh(new T.TorusGeometry(.05,.012,10,24),IRON);if(!P.sides){wheel.position.copy(A);sc.add(wheel)}}}
  if(q==='elastique'&&(!ex.anchor||ex.anchor==='pieds'))man.arms.forEach((a,i)=>L.push({o:cyl(.012,BAND),a:()=>wp(man.legs[i].sole),b:()=>wp(a.hand)}));
@@ -1147,7 +1150,8 @@ function viewer3d(el,ex){
   if(g==='pivot'){const sup=P.sup==='elbow'?man.arms.map(a=>a.fa):hands;const feet=man.legs.flatMap(l=>[l.toe]);let lo=.05,hi=2.7;
    const f=phi=>{Rt.rotation.x=phi;Rt.position.y=0;Rt.updateMatrixWorld(true);Rt.position.y=P.fy-minY(feet);Rt.updateMatrixWorld(true);return minY(sup)-P.sy};
    for(let i=0;i<18;i++){const m=(lo+hi)/2;if(f(m)>0)lo=m;else hi=m}f((lo+hi)/2);return}}
- function props(){if(barbell){const a=wp(hands[0]),b=wp(hands[1]);barbell.position.copy(a).add(b).multiplyScalar(.5);const d=new T.Vector3().subVectors(b,a).normalize();barbell.quaternion.setFromUnitVectors(new T.Vector3(1,0,0),d)}
+ function props(){if(sbar){const a=wp(hands[0]),b=wp(hands[1]);sbar.position.copy(a).add(b).multiplyScalar(.5);const d=new T.Vector3().subVectors(b,a).normalize();sbar.quaternion.setFromUnitVectors(new T.Vector3(1,0,0),d);sbar.scale.set(Math.max(.5,a.distanceTo(b)/.42+.15),1,1)}
+  if(barbell){const a=wp(hands[0]),b=wp(hands[1]);barbell.position.copy(a).add(b).multiplyScalar(.5);const d=new T.Vector3().subVectors(b,a).normalize();barbell.quaternion.setFromUnitVectors(new T.Vector3(1,0,0),d)}
   L.forEach(l=>setLine(l.o,l.a(),l.b()));
   if(B){if(B.hands){const v=hands.map(wp);benchG.position.set(0,P.sy-.04,(v[0].z+v[1].z)/2)}
    else if(B.feet){const v=man.legs.map(l=>wp(l.toe));benchG.position.set(0,P.fy-.06,(v[0].z+v[1].z)/2-.08)}
