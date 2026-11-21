@@ -81,6 +81,7 @@ svg.chart{width:100%;height:auto;display:block}
 .exr{padding:10px 0;border-top:1px solid var(--line)}.mini{display:flex;gap:16px;flex-wrap:wrap;margin-top:4px;font-size:13px}
 table.tbl{width:100%;border-collapse:collapse;font-size:13px}.tbl th{text-align:left;color:var(--mu);font-weight:600;font-size:11px}.tbl td,.tbl th{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
 [hidden]{display:none!important}
+.fh{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}.fh .k{margin:0}.fh .fa{color:var(--ac);font-size:18px;padding:0 2px 0 12px}
 .gh .fa,.sgh .fa{display:inline-block;width:24px;color:var(--ac)}
 .gh{cursor:pointer;user-select:none;font-size:22px;font-weight:800;color:var(--tx);margin:22px 0 10px;padding:4px 0 6px 12px;border-left:5px solid var(--ac);letter-spacing:.01em;break-after:avoid}.gh .muted{font-size:15px;font-weight:600}
 .sgh{cursor:pointer;user-select:none;font-size:15px;font-weight:700;color:var(--ac2);padding:12px 0 2px;border-bottom:1px solid var(--line)}
@@ -124,8 +125,10 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='1.3.0',APP_DATE='21/11/2026';
+const APP_VERSION='1.5.0',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['1.5.0','21/11/2026',['Accueil : « X exercices seront remplacés » devient cliquable et montre la liste exercice d’origine → équivalent, module par module','Possibilité de choisir un autre équivalent avant de démarrer (choix mémorisé pour le lieu)']],
+ ['1.4.0','21/11/2026',['Accueil : les cartes « Programme » et « Séance libre » se replient d’un tap sur leur titre ; programme replié = nom, avancement, prochaine séance et bouton Démarrer']],
  ['1.3.0','21/11/2026',['Liste des exercices, vue « Par matériel » : chaque matériel est détaillé par groupe musculaire (Élastiques › Épaules, Biceps…), chaque niveau se replie']],
  ['1.2.0','21/11/2026',['Liste des exercices : déplier / replier chaque groupe et sous-groupe d’un tap, boutons « Tout déplier » et « Tout replier » (l’état est mémorisé) ; une recherche déplie tout automatiquement']],
  ['1.1.1','21/11/2026',['Liste des exercices : titres de groupes (Épaules, Biceps…) beaucoup plus grands et visibles, avec le nombre d’exercices ; sous-groupes agrandis']],
@@ -344,13 +347,16 @@ V.home=()=>{
   const progs=db.programs.filter(p=>p.active!==false);
   if(!progs.length)h+=`<div class="card"><p>Aucun programme actif.</p><button class="btn" data-a="newProgram">Créer un programme</button></div>`;
   progs.forEach(p=>{const st=progStatus(p);const nt=p.templates.length?nextTemplate(p):null;
-    h+=`<div class="card"><div class="k">Programme</div><h2>${esc(p.name)}</h2>${p.goal?`<p class="sm muted">🎯 ${esc(p.goal)}</p>`:''}<div class="bar"><i style="width:${st.pct*100}%"></i></div><div class="xs muted">${st.text}</div>`;
+    const fk='home|p|'+p.id,fd=hF(fk);
+    if(fd){h+=`<div class="card"><div class="fh" data-a="fold" data-v="${fk}"><div class="k">Programme</div><span class="fa">▸</span></div><h2 style="margin-top:6px">${esc(p.name)}</h2><div class="bar"><i style="width:${st.pct*100}%"></i></div><div class="row sb"><div class="xs muted">${st.text}${nt?' · prochaine : <b>'+esc(nt.name)+'</b>':''}</div>${nt?`<button class="btn sm" data-a="startTpl" data-p="${p.id}" data-t="${nt.id}">▶ Démarrer</button>`:''}</div></div>`;return}
+    h+=`<div class="card"><div class="fh" data-a="fold" data-v="${fk}"><div class="k">Programme</div><span class="fa">▾</span></div><h2>${esc(p.name)}</h2>${p.goal?`<p class="sm muted">🎯 ${esc(p.goal)}</p>`:''}<div class="bar"><i style="width:${st.pct*100}%"></i></div><div class="xs muted">${st.text}</div>`;
     if(nt){h+=`<div class="next"><div class="k">Prochaine séance</div><b>${esc(nt.name)}</b><div class="xs muted">${nt.moduleIds.map(id=>esc(modName(id))).join(' + ')||'Aucun module'}</div>${adaptInfo(nt.moduleIds)}${(()=>{const R=resumeFor();return R?`<div class="xs" style="margin-top:4px;color:var(--ok)">🔄 ${R.lvl===1?'Dernière séance il y a '+gapTxt(R.gap)+' : démarrage en':'Suite du'} mode reprise (charges −${R.pct} %)</div>`:''})()}<button class="btn big" data-a="startTpl" data-p="${p.id}" data-t="${nt.id}">▶ Démarrer</button></div>`;
       if(p.templates.length>1)h+=`<div class="chips">${p.templates.filter(t=>t.id!==nt.id).map(t=>`<button class="chip" data-a="startTpl" data-p="${p.id}" data-t="${t.id}">▶ ${esc(t.name)}</button>`).join('')}</div>`}
     else h+=`<p class="muted sm">Ajoute des séances types à ce programme.</p>`;
     h+='</div>'});
   const fm=db.modules.map(m=>({m,a:adaptCount([m.id])})).sort((x,y)=>(x.a.miss>0)-(y.a.miss>0));
-  h+=`<div class="card"><div class="k">Séance libre</div><button class="btn ghost wide" data-a="compose">🧩 Composer une séance (choisir plusieurs modules)</button><div class="chips">${fm.map(({m,a})=>`<button class="chip" data-a="startMod" data-m="${m.id}" ${a.miss?'style="opacity:.55"':''}>▶ ${esc(m.name)}${a.miss?' ⚠':a.sub?' ↺':''}</button>`).join('')||'<span class="muted sm">Crée d’abord un module.</span>'}</div><div class="xs muted" style="margin-top:6px">↺ = exercices adaptés au matériel · ⚠ = certains exercices sans équivalent ici</div></div>`;
+  if(hF('home|lib'))h+=`<div class="card"><div class="fh" data-a="fold" data-v="home|lib"><div class="k">Séance libre <span class="muted" style="text-transform:none;letter-spacing:0">· ${db.modules.length} modules</span></div><span class="fa">▸</span></div></div>`;
+  else h+=`<div class="card"><div class="fh" data-a="fold" data-v="home|lib"><div class="k">Séance libre</div><span class="fa">▾</span></div><button class="btn ghost wide" data-a="compose">🧩 Composer une séance (choisir plusieurs modules)</button><div class="chips">${fm.map(({m,a})=>`<button class="chip" data-a="startMod" data-m="${m.id}" ${a.miss?'style="opacity:.55"':''}>▶ ${esc(m.name)}${a.miss?' ⚠':a.sub?' ↺':''}</button>`).join('')||'<span class="muted sm">Crée d’abord un module.</span>'}</div><div class="xs muted" style="margin-top:6px">↺ = exercices adaptés au matériel · ⚠ = certains exercices sans équivalent ici</div></div>`;
   const last=db.sessions[db.sessions.length-1];
   if(last){const t=sessionTotals(last),pv=prevComparable(last),pt=pv&&sessionTotals(pv);
     h+=`<div class="card tap" data-a="openSession" data-id="${last.id}"><div class="k">Dernière séance · ${fmtDate(last.start)}</div><b>${esc(last.name)}</b><div class="kpis">${kpi('Volume',fmtKg(t.volume),pt&&delta(t.volume,pt.volume))}${kpi('Séries',t.sets,pt&&delta(t.sets,pt.sets))}${kpi('Durée',fmtMin(last.end-last.start))}</div><div class="xs muted">Voir le bilan →</div></div>`}
@@ -359,7 +365,17 @@ V.home=()=>{
 };
 
 function adaptCount(mids,loc=curLoc()){let sub=0,miss=0;mids.forEach(mid=>{const m=db.modules.find(x=>x.id===mid);if(m)m.blocks.forEach(b=>b.items.forEach(it=>{const s=subFor(it.exId,loc);if(!s)miss++;else if(s!==it.exId)sub++}))});return {sub,miss}}
-function adaptInfo(mids){const a=adaptCount(mids);if(!a.sub&&!a.miss)return '';return `<div class="xs" style="margin-top:4px;color:var(--ac2)">${curLoc().icon||''} ${a.sub?a.sub+' exercice(s) seront remplacés par un équivalent':''}${a.sub&&a.miss?' · ':''}${a.miss?a.miss+' sans équivalent ici':''}</div>`}
+function adaptInfo(mids){const a=adaptCount(mids);if(!a.sub&&!a.miss)return '';return `<div class="xs tap" data-a="adaptShow" data-m="${mids.join(',')}" style="margin-top:4px;color:var(--ac2);text-decoration:underline dotted;text-underline-offset:3px">${curLoc().icon||''} ${a.sub?a.sub+' exercice(s) seront remplacés par un équivalent':''}${a.sub&&a.miss?' · ':''}${a.miss?a.miss+' sans équivalent ici':''} — <b>voir le détail ›</b></div>`}
+function adaptCands(orig,loc){const ex=exById(orig)||{};const all=db.exercises.filter(e=>e.id!==orig&&feasible(e,loc));const sm=all.filter(e=>ex.move&&e.move===ex.move),ss=all.filter(e=>!sm.includes(e)&&ex.sub&&e.muscle===ex.muscle&&e.sub===ex.sub),sg=all.filter(e=>!sm.includes(e)&&!ss.includes(e)&&e.muscle===ex.muscle);return [['Même mouvement',sm],['Même sous-groupe',ss],['Même groupe',sg]]}
+A.adaptShow=el=>{const mids=(el.dataset.m||'').split(',').filter(Boolean);S.adaptM=mids;const loc=curLoc();let h=`<h3>${esc(loc.icon||'')} Remplacements pour « ${esc(loc.name)} »</h3><p class="xs muted">D’après le matériel activé. Touche ⇄ pour choisir un autre équivalent : ton choix est mémorisé pour ce lieu.</p>`;let n=0;
+  mids.forEach(mid=>{const m=db.modules.find(x=>x.id===mid);if(!m)return;const rows=[];m.blocks.forEach(b=>b.items.forEach(it=>{const s=subFor(it.exId,loc);if(s===it.exId)return;const o=exById(it.exId)||{name:'?'};rows.push(`<div class="li row sb"><div class="sm"><span class="muted">${esc(o.name)}</span><br>${s?`→ <b>${esc(exById(s).name)}</b> <span class="tag">${EQUIP[exById(s).equip]}${exById(s).anchor&&exById(s).anchor!=='pieds'?' · '+ANCH[exById(s).anchor].replace('Ancrage ',''):''}</span>`:'<b style="color:var(--bad)">⚠ aucun équivalent avec ce matériel</b>'}</div><button class="icon" data-a="adaptPick" data-o="${it.exId}" title="Choisir un autre équivalent">⇄</button></div>`)}));
+    if(rows.length){n+=rows.length;h+=`<div class="k" style="margin-top:12px">${esc(m.name)}</div>${rows.join('')}`}});
+  if(!n)h+='<p class="sm">Aucun remplacement : tout est faisable avec le matériel du jour.</p>';
+  modal(h+`<button class="btn ghost wide" data-a="closeModal">Fermer</button>`)};
+A.adaptPick=el=>{const o=el.dataset.o,loc=curLoc(),ex=exById(o)||{},cur=subFor(o,loc);const groups=adaptCands(o,loc);
+  modal(`<h3>Remplacer « ${esc(ex.name)} »</h3><p class="xs muted">${muscLabel(ex)}${ex.move?' · mouvement : '+esc(ex.move):''}</p>${groups.map(([t,l])=>l.length?`<div class="k" style="margin-top:10px">${t}</div>${l.map(e=>`<div class="li tap row sb" data-a="adaptSet" data-o="${o}" data-id="${e.id}"><span>${e.id===cur?'✓ ':''}${esc(e.name)}${e.type?` <span class="tag">${e.type==='iso'?'Iso':'Poly'}</span>`:''}</span><span class="tag">${EQUIP[e.equip]}${e.anchor&&e.anchor!=='pieds'?' · '+ANCH[e.anchor].replace('Ancrage ',''):''}</span></div>`).join('')}`:'').join('')||'<p class="sm">Aucun exercice faisable avec le matériel du jour pour ce muscle.</p>'}<div class="row" style="margin-top:10px"><button class="btn ghost" data-a="adaptBack">← Retour</button></div>`)};
+A.adaptSet=el=>{db.subs[curLoc().id+'|'+el.dataset.o]=el.dataset.id;save();render();A.adaptShow({dataset:{m:(S.adaptM||[]).join(',')}});toast('Choix mémorisé pour ce lieu')};
+A.adaptBack=()=>A.adaptShow({dataset:{m:(S.adaptM||[]).join(',')}});
 A.setLoc=el=>{db.settings.curLoc=el.dataset.v;save();render()};
 const allEq=()=>Object.keys(EQUIP).filter(k=>k!=='pdc');
 A.togAll=()=>{const l=curLoc();const all=allEq().every(k=>l.equip.includes(k))&&['haut','median','bas'].every(k=>(l.anchors||[]).includes(k));l.equip=all?[]:allEq();l.anchors=all?[]:['haut','median','bas'];save();render();toast(all?'Tout le matériel désactivé : seul le poids du corps reste disponible':'Tout le matériel activé')};
@@ -641,6 +657,7 @@ V.exercises=()=>{
   if(!list.length)h+='<div class="card muted">Aucun exercice ne correspond aux filtres.</div>';
   return h;
 };
+const hF=k=>!!(db.settings.fold||{})[k];
 const isF=k=>!S.exq&&!!(db.settings.fold||{})[k];
 A.fold=el=>{const f=db.settings.fold=db.settings.fold||{};const k=el.dataset.v;if(f[k])delete f[k];else f[k]=1;save();render()};
 A.foldAll=el=>{const f={};if(el.dataset.v==='1'){db.exercises.forEach(e=>{f['g|'+e.muscle]=1;f['move|'+(e.move||'(sans mouvement)')]=1;f['eq|'+(EQUIP[e.equip]||e.equip)]=1})}db.settings.fold=f;save();render()};
