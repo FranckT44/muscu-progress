@@ -134,8 +134,9 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.12.6',APP_DATE='21/11/2026';
+const APP_VERSION='2.12.7',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.12.7','21/11/2026',['Séance en cours : un bloc ouvert avec « Afficher ce bloc » se referme avec « ▴ Masquer ce bloc » (en haut et en bas du bloc)']],
  ['2.12.6','21/11/2026',['Pendant le repos : la barre du minuteur indique la suite (série/tour n/N) et, au changement d’exercice, « 🔧 À préparer » avec le matériel, l’ancrage et la charge ou les élastiques de la dernière fois']],
  ['2.12.5','21/11/2026',['Démarrage : choix de l’enchaînement « 🔁 En tours (circuit) » ou « ➡️ Exercice par exercice » (toutes les séries d’un exercice puis le suivant), mémorisé ; l’aperçu suit ce choix']],
  ['2.12.4','21/11/2026',['Séance en cours : bouton ⏸ Pause / ▶ Reprendre pour arrêter le compteur de durée (le repos en cours est aussi mis en pause) ; la durée enregistrée exclut les pauses','Bouton ↺ 0:00 pour remettre le compteur à zéro tant qu’aucune série n’est validée']],
@@ -537,6 +538,7 @@ function blockCard(b,bi){
   if(!open){h+=`<div class="sm" style="margin-top:6px">${b.items.map((it,ii)=>L(ii)+esc(exById(it.exId)?.name||'?')).join(' · ')}</div>`;
     if(done)h+=`<table class="log">${b.log.map((r,ri)=>`<tr><td class="muted">${single?'S':'T'}${ri+1}</td>${r.map((s,ii)=>`<td>${single?'':'<span class="muted">'+String.fromCharCode(65+ii)+'</span> '}${s?fmtSet(s):'–'}</td>`).join('')}</tr>`).join('')}</table>`;
     return h+`<button class="btn ghost sm" data-a="toggleBlk" data-bi="${bi}" style="margin-top:8px">${complete?'Afficher / ajouter un tour':'Afficher ce bloc'}</button></div>`}
+  const peek=bi!==curBi&&(S.open||{})[bi]&&!(a.pendingRP&&a.pendingRP.bi===bi),hideBtn=peek?`<button class="btn ghost sm" data-a="toggleBlk" data-bi="${bi}" style="margin:6px 0">▴ Masquer ce bloc</button>`:'';h+=hideBtn;
   b.items.forEach((it,ii)=>{const ex=exById(it.exId)||{name:'(supprimé)'};const last=getLastSets(it.exId,a.start);const hint=complete||a.resume||(a.mode&&(a.mode.reps||a.mode.struct==='eq'))?'':progressHint(it,last);
     h+=`<div class="exh"><b>${L(ii)}${esc(ex.name)}</b><button class="icon sw" data-a="swap" data-bi="${bi}" data-ii="${ii}" title="Remplacer par un équivalent">⇄</button><button class="icon sw" data-a="demo" data-id="${ex.id}" title="Voir le mouvement">${(ex.videos||[]).length?'🎬':'👁'}</button>${ex.muscle?` <span class="mus" style="margin:0 0 0 4px">${muscLabel(ex)}</span>`:''} <span class="xs muted">· ${EQUIP[ex.equip]||''}${ex.anchor&&ex.anchor!==''?' · '+ANCH[ex.anchor]:''} · obj. ${esc(tgtParts(it).join(' / ')||'–')}${ex.mode==='time'?' s':''}${it.rp?' · ⚡RP '+(it.rp==='last'?'dernière série':'chaque série')+' '+fmtDur(it.rpSec||db.settings.rpSec):''}${ex.uni?' · G puis D':''}</span>${last?`<div class="xs muted">Dernière fois (${fmtDate(last.session.start)}) : ${last.sets.map(fmtSet).join(' · ')}</div>`:'<div class="xs muted">Première fois sur cet exercice</div>'}${hint?`<div class="xs hint">${hint}</div>`:''}${complete?'':targetHint(it,ex,done)}${ex.notes?`<div class="xs muted">📝 ${esc(ex.notes)}</div>`:''}${it.orig?`<div class="xs muted">↺ remplace « ${esc(exById(it.orig)?.name)} »</div>`:''}${it.missing?'<div class="xs" style="color:var(--bad)">⚠ Pas faisable avec le matériel du lieu : touche ⇄ pour choisir un équivalent</div>':''}</div>`});
   if(done)h+=`<table class="log">${b.log.map((r,ri)=>`<tr><td class="muted">${single?'S':'T'}${ri+1}</td>${r.map((s,ii)=>`<td>${single?'':'<span class="muted">'+String.fromCharCode(65+ii)+'</span> '}${s?fmtSet(s):'–'}</td>`).join('')}</tr>`).join('')}</table>`;
@@ -550,7 +552,7 @@ function blockCard(b,bi){
       h+=`${single?'':`<div class="xs muted" style="margin-top:6px">${L(ii)}${esc(ex.name)}</div>`}<div class="setrow">${single?'':`<div class="sn">${String.fromCharCode(65+ii)}</div>`}<label class="fld"><span>${ex.mode==='time'?'Secondes':'Reps'} <b>(obj. ${esc(tgtFor(it,ri)||'–')})</b></span><input type="number" inputmode="numeric" id="r-${bi}-${ii}" value="${esc(pf.reps)}" placeholder="vide = sauté"></label>${loadField(ex,`l-${bi}-${ii}`,pf)}<label class="rpt"><input type="checkbox" id="rpc-${bi}-${ii}" ${isRp(it,ri,b)&&!a.resume?'checked':''}><span>Rest-pause</span></label></div>${usesBands(ex)&&ex.mode!=='time'?`<div class="bchips">${db.settings.bands.map(x=>`<button class="bc" data-a="bandAdd" data-t="l-${bi}-${ii}" data-v="${esc(x.name)}">+${esc(x.name)}</button>`).join('')}<button class="bc" data-a="bandClr" data-t="l-${bi}-${ii}">⌫</button></div>`:''}`});
     h+=`<button class="btn big wide" data-a="validate" data-bi="${bi}">✓ Valider ${single?'la série':'le tour'}${a.past?'':' + lancer '+(ri>=b.sets-1&&b.restEnd?'la pause de fin':'le repos')}</button></div>`;
   }else h+=`<div class="row sb" style="margin-top:6px"><span class="ok">✓ Bloc terminé</span><button class="btn ghost sm" data-a="addRound" data-bi="${bi}">+1 ${single?'série':'tour'}</button></div>`;
-  return h+'</div>';
+  return h+(typeof hideBtn!=='undefined'&&hideBtn?hideBtn:'')+'</div>';
 }
 V.workout=()=>{
   const a=db.active;if(!a){S.view='home';return V.home()}
