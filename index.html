@@ -132,8 +132,10 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.12.1',APP_DATE='21/11/2026';
+const APP_VERSION='2.12.3',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.12.3','21/11/2026',['Démarrage d’une séance : le mode reprise s’affiche dans la fenêtre (écart depuis la dernière séance, baisse des charges, séance n/N) avec une case pour l’appliquer ou non ; s’il avait été ignoré, lien « le réactiver »']],
+ ['2.12.2','21/11/2026',['Progrès → Historique : séances regroupées par mois (nombre de séances et volume du mois), chaque mois se replie d’un tap ; ⊞ Tout déplier · ⊟ Tout replier ; filtre « Mois » pour n’afficher qu’un mois ; 📝 pour les séances saisies après coup']],
  ['2.12.1','21/11/2026',['Sauvegarde dans un dossier (PC) : autorisation demandée dès le choix du dossier, bouton « ✍️ Tester l’écriture » et affichage de la cause exacte en cas d’échec']],
  ['2.12.0','21/11/2026',['Nouveaux exercices Dos : Tirage haut élastique (ancrage haut), Tirage haut TRX (corps incliné), Tirage haut poulie haute — corps vertical, tirage mains au-dessus de la tête','Tirage poulie basse (pecs) : ancrages ~1 m derrière','Curl sur cuisse : bras orienté à 45° vers l’intérieur des cuisses','Hip hinge surélevé : banc derrière, épaules en appui sur le bord','Soulevé de terre : 2 haltères, jambes légèrement fléchies ; versions élastiques : jambes qui fléchissent, buste fixe légèrement incliné','Curl latéral prise marteau : un bras après l’autre, orienté à 45° vers le torse','Tirage barre V : barre en V plus large, prise neutre sur les côtés','Leg curl genou en appui : le coussin ne bouge plus','Curl / avant-bras : poignets fixes, de 90° vers le bas, coudes au corps','Pont fessier 1 jambe : le bassin ne passe plus sous le sol']],
  ['2.11.5','21/11/2026',['Perpendiculaire couché : avant-bras tournés vers l’intérieur, poings au-dessus des pectoraux, puis bras à la verticale ; pieds au sol','Développé couché (banc plat) : pieds au sol']],
@@ -466,7 +468,7 @@ function optsHtml(){const o=S.pendingStart,O=S.opt,md=modeById(O.mode);const p=o
   <div class="fld"><span>Séries</span><div class="seg"><button class="${O.struct==='deg'?'on':''}" data-a="optStruct" data-v="deg">Dégressives</button><button class="${O.struct==='eq'?'on':''}" data-a="optStruct" data-v="eq">Égales</button></div></div>
   <label class="chk"><input type="checkbox" id="optRest" ${O.rest?'checked':''} data-ch="optRestCh"> Repos automatique selon le mode${+md.rest?` (${fmtDur(md.rest)} entre tours)`:' (le mode Normal garde les repos du programme)'}</label>
   <div class="note xs">${it?`Exemple, ${esc(exById(it.exId)?.name||'')} : objectifs <b>${esc(String(prevT).replace(/\//g,' / '))}</b>`:''}${+md.reps||O.struct==='eq'?' · charges calculées depuis ton 1RM estimé (à valider dès la 1ʳᵉ série)':' · charges reprises de la dernière séance'}</div>
-  ${pastHtml()}<button class="btn big wide" data-a="startGo">${O.past?'📝 Saisir les séries':'▶ Démarrer'}</button><button class="btn ghost wide" data-a="preview">👁 Aperçu de la séance (exercices, objectifs, charges)</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`}
+  ${resumeHtml()}${pastHtml()}<button class="btn big wide" data-a="startGo">${O.past?'📝 Saisir les séries':'▶ Démarrer'}</button><button class="btn ghost wide" data-a="preview">👁 Aperçu de la séance (exercices, objectifs, charges)</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`}
 A.optMode=el=>{S.opt.mode=el.dataset.v;modal(optsHtml())};
 A.optStruct=el=>{S.opt.struct=el.dataset.v;modal(optsHtml())};
 A.optRestCh=el=>{S.opt.rest=el.checked};
@@ -476,7 +478,7 @@ function buildActive(o){const loc=curLoc();let nS=0,nM=0;const blocks=[];
     items:clone(b.items).map(it=>{const s=subFor(it.exId,loc);if(s&&s!==it.exId){nS++;return {...it,orig:it.exId,exId:s,load:'',band:''}}if(!s){nM++;return {...it,missing:true}}return it})}))});
   if(!blocks.length&&!o.free)return null;
   const md=modeById(o.opts.mode),Rm=+md.reps||0;blocks.forEach(b=>{if(o.opts.rest&&Rm&&+md.rest)b.rest=+md.rest;b.items.forEach(it=>{it.reps=adaptTarget(it.reps,b.sets,Rm,o.opts.struct)})});
-  return {nS,nM,loc,act:{id:uid(),start:Date.now(),loc:loc.id,resume:resumeFor(),mode:{id:md.id,name:md.name,reps:Rm,struct:o.opts.struct},name:o.name+(loc.id!==db.settings.locations[0].id?' · '+loc.name:''),programId:o.programId||null,templateId:o.templateId||null,free:o.free?1:undefined,blocks,pendingRP:null}}}
+  return {nS,nM,loc,act:{id:uid(),start:Date.now(),loc:loc.id,resume:o.opts&&(o.opts.noResume||o.opts.past)?null:resumeFor(),mode:{id:md.id,name:md.name,reps:Rm,struct:o.opts.struct},name:o.name+(loc.id!==db.settings.locations[0].id?' · '+loc.name:''),programId:o.programId||null,templateId:o.templateId||null,free:o.free?1:undefined,blocks,pendingRP:null}}}
 function previewHtml(){const o=S.pendingStart,O=S.opt;const B=buildActive({...o,opts:{...O}});if(!B)return '<p>Séance vide.</p><button class="btn ghost wide" data-a="closeModal">Fermer</button>';
   const keep=db.active;db.active=B.act;let h='';
   try{const a=B.act;h+=`<h3>👁 Aperçu · ${esc(a.name)}</h3><div class="xs muted">🎯 ${esc(a.mode.name)} · séries ${a.mode.struct==='eq'?'égales':'dégressives'}${a.resume?` · 🔄 reprise −${a.resume.pct} %`:''} · ${locIcon(a.loc)} ${esc(B.loc.name)}${B.nS?` · ${B.nS} exercice(s) remplacé(s)`:''}</div>`;
@@ -636,8 +638,18 @@ A.musOpen=el=>{S.musOpen=S.musOpen||{};S.musOpen[el.dataset.v]=!S.musOpen[el.dat
 A.ptab=el=>{S.ptab=el.dataset.v;render()};
 function histView(){
   if(!db.sessions.length)return '<div class="card muted">Aucune séance enregistrée pour l’instant. Lance ta première séance depuis l’accueil !</div>';
-  return `<div class="card list">${[...db.sessions].reverse().map(s=>{const t=sessionTotals(s),p=prevComparable(s),pt=p&&sessionTotals(p);return `<div class="li tap row sb" data-a="openSession" data-id="${s.id}"><div><b>${locIcon(s.loc)} ${s.resume?'🔄 ':''}${esc(s.name)}</b>${s.mode&&(s.mode.reps||s.mode.struct==='eq')?` <span class="tag">${esc(s.mode.name.replace(/ \(programme\)/,''))}${s.mode.struct==='eq'?' · égales':''}</span>`:''}<div class="xs muted">${fmtDate(s.start)} · ${t.sets} séries · ${fmtMin(s.end-s.start)}${s.rpe?' · RPE '+s.rpe:''}</div></div><div style="text-align:right"><b>${fmtKg(t.volume)}</b><div>${pt?delta(t.volume,pt.volume):''}</div></div></div>`}).join('')}</div>`;
-}
+  const mk=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')},ml=k=>{const [y,m]=k.split('-');return new Date(+y,+m-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'})};
+  const all=[...db.sessions].reverse(),months=[...new Set(all.map(s=>mk(s.start)))],f=db.settings.fold||{},sel=months.includes(S.hMonth)?S.hMonth:'all';
+  const open=k=>sel!=='all'||(f['hm|'+k]!=null?!!f['hm|'+k]:k===months[0]);
+  const row=s=>{const t=sessionTotals(s),p=prevComparable(s),pt=p&&sessionTotals(p);return `<div class="li tap row sb" data-a="openSession" data-id="${s.id}"><div><b>${locIcon(s.loc)} ${s.resume?'🔄 ':''}${s.past?'📝 ':''}${esc(s.name)}</b>${s.mode&&(s.mode.reps||s.mode.struct==='eq')?` <span class="tag">${esc(s.mode.name.replace(/ \(programme\)/,''))}${s.mode.struct==='eq'?' · égales':''}</span>`:''}<div class="xs muted">${fmtDate(s.start)} · ${t.sets} séries · ${fmtMin(s.end-s.start)}${s.rpe?' · RPE '+s.rpe:''}</div></div><div style="text-align:right"><b>${fmtKg(t.volume)}</b><div>${pt?delta(t.volume,pt.volume):''}</div></div></div>`};
+  let h=`<div class="row wrap" style="gap:8px;align-items:center;margin-bottom:6px"><label class="fld" style="margin:0;min-width:190px"><span>Mois</span><select data-ch="hMonth"><option value="all">Tous les mois (${all.length} séances)</option>${months.map(k=>`<option value="${k}" ${k===sel?'selected':''}>${ml(k)} (${all.filter(s=>mk(s.start)===k).length})</option>`).join('')}</select></label>${sel==='all'?`<div class="chips" style="margin:0"><button class="chip" data-a="hFold" data-v="1">⊞ Tout déplier</button><button class="chip" data-a="hFold" data-v="0">⊟ Tout replier</button></div>`:''}</div>`;
+  (sel==='all'?months:[sel]).forEach(k=>{const L=all.filter(s=>mk(s.start)===k),o=open(k),vol=L.reduce((a,s)=>a+sessionTotals(s).volume,0);
+   h+=`<div class="gh ${o?'':'fold'}" data-a="hMonthTg" data-v="${k}" style="cursor:pointer"><span class="fa">${o?'▾':'▸'}</span>${ml(k).replace(/^./,c=>c.toUpperCase())} <span class="muted">(${L.length} séance${L.length>1?'s':''} · ${fmtKg(vol)})</span></div>`;
+   if(o)h+=`<div class="card list">${L.map(row).join('')}</div>`});
+  return h}
+A.hMonth=el=>{S.hMonth=el.value;render()};
+A.hMonthTg=el=>{if(S.hMonth&&S.hMonth!=='all')return;const f=db.settings.fold=db.settings.fold||{},k=el.dataset.v,cur=el.querySelector('.fa').textContent==='▾';f['hm|'+k]=cur?0:1;save();render()};
+A.hFold=el=>{const f=db.settings.fold=db.settings.fold||{};const v=+el.dataset.v;new Set(db.sessions.map(s=>{const d=new Date(s.start);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')})).forEach(k=>f['hm|'+k]=v);save();render()};
 function exProgView(){
   const ids=[...new Set(db.sessions.flatMap(exIdsOf))].filter(exById);
   if(!ids.length)return '<div class="card muted">Termine une première séance pour voir tes courbes de progression.</div>';
@@ -933,6 +945,13 @@ document.addEventListener('input',e=>{const el=e.target;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 function applyLayout(){document.body.classList.toggle('fs-l',db.settings.fs==='l');document.body.classList.toggle('fs-xl',db.settings.fs==='xl');const L=db.settings.layout||'auto';const auto=matchMedia('(min-width:1000px) and (hover:hover) and (pointer:fine)').matches;const w=L==='wide'||(L==='auto'&&auto);document.body.classList.toggle('wide',w);document.body.classList.toggle('xwide',w&&innerWidth>=1500)}
 addEventListener('resize',applyLayout);applyLayout();
+function resumeHtml(){const st=db.settings,O=S.opt;if(O.past||!(+st.resumeDays>0))return '';const R=resumeFor();
+ if(R)return `<label class="chk" style="margin:6px 0;align-items:flex-start"><input type="checkbox" data-ch="resumeCh" ${O.noResume?'':'checked'}> <span>🔄 <b>Mode reprise</b> : ${R.lvl===1?'dernière séance il y a '+gapTxt(R.gap):'suite de la reprise'} → charges <b>−${R.pct} %</b> (séance ${R.lvl}/${R.n})<br><span class="xs muted">Décoche pour garder les charges normales.</span></span></label>`;
+ const p=db.sessions[db.sessions.length-1];if(p&&st.resumeSkip===p.id&&(Date.now()-p.start)/864e5>=+st.resumeDays)return `<div class="xs muted" style="margin:6px 0">🔄 Mode reprise ignoré pour cette séance (dernière séance il y a ${gapTxt(Math.round((Date.now()-p.start)/864e5))}) · <span class="tap" data-a="resumeOn" style="text-decoration:underline;font-weight:700">le réactiver</span></div>`;
+ return ''}
+A.resumeCh=el=>{S.opt.noResume=!el.checked;modal(optsHtml())};
+A.resumeOn=()=>{delete db.settings.resumeSkip;S.opt.noResume=false;save();modal(optsHtml())};
+
 /* ================= Séance déjà faite (saisie après coup) ================= */
 const pad2=x=>String(x).padStart(2,'0');
 function pastInit(){if(!S.pastPre)return {past:false};const d=new Date(Date.now()-3600e3);return {past:true,pDate:`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`,pTime:`${pad2(d.getHours())}:${pad2(Math.floor(d.getMinutes()/15)*15)}`,pDur:60}}
