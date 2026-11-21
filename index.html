@@ -128,8 +128,9 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='1.8.3',APP_DATE='21/11/2026';
+const APP_VERSION='1.9.0',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['1.9.0','21/11/2026',['Aperçu de la séance avant de démarrer : exercices (avec remplacements), muscle, objectifs et charges proposées tour par tour, selon le mode, la reprise et le lieu','Bouton « 👁 Aperçu » sur l’accueil et dans la fenêtre de démarrage']],
  ['1.8.3','21/11/2026',['Historique : les pompes de WO 1 · Série 4 sont rattachées à « Pompes pieds surélevés » (pieds à hauteur de banc), module WO 1 · Série 4 mis à jour']],
  ['1.8.2','21/11/2026',['Nouveaux exercices : Pompes pieds surélevés (Pectoraux › Haut) et Pompes inclinées mains surélevées (Pectoraux › Bas), au poids du corps']],
  ['1.8.1','21/11/2026',['Comparaisons par défaut sur le volume total, tous modes confondus (une séance en 8 se compare à une séance en 15)','Bilan de séance : bascule « Volume total · tous modes » / « Même mode »','Progrès → Exercices : filtre par mode (8-8, 15-15…) sur les chiffres, courbes et tableau ; KPI « Volume depuis le début »']],
@@ -369,7 +370,7 @@ V.home=()=>{
     const fk='home|p|'+p.id,fd=hF(fk);
     if(fd){h+=`<div class="card"><div class="fh" data-a="fold" data-v="${fk}"><div class="k">Programme</div><span class="fa">▸</span></div><h2 style="margin-top:6px">${esc(p.name)}</h2><div class="bar"><i style="width:${st.pct*100}%"></i></div><div class="row sb"><div class="xs muted">${st.text}${nt?' · prochaine : <b>'+esc(nt.name)+'</b>':''}</div>${nt?`<button class="btn sm" data-a="startTpl" data-p="${p.id}" data-t="${nt.id}">▶ Démarrer</button>`:''}</div></div>`;return}
     h+=`<div class="card"><div class="fh" data-a="fold" data-v="${fk}"><div class="k">Programme</div><span class="fa">▾</span></div><h2>${esc(p.name)}</h2>${p.goal?`<p class="sm muted">🎯 ${esc(p.goal)}</p>`:''}<div class="bar"><i style="width:${st.pct*100}%"></i></div><div class="xs muted">${st.text}</div>`;
-    if(nt){h+=`<div class="next"><div class="k">Prochaine séance</div><b>${esc(nt.name)}</b>${(()=>{const nm=nextMode(p);return nm?` <span class="tag on">🎯 ${esc(nm.name)}</span>`:''})()}<div class="xs muted">${nt.moduleIds.map(id=>esc(modName(id))).join(' + ')||'Aucun module'}</div>${adaptInfo(nt.moduleIds)}${(()=>{const R=resumeFor();return R?`<div class="xs" style="margin-top:4px;color:var(--ok)">🔄 ${R.lvl===1?'Dernière séance il y a '+gapTxt(R.gap)+' : démarrage en':'Suite du'} mode reprise (charges −${R.pct} %) · <span class="tap" data-a="resumeSkip" style="text-decoration:underline;font-weight:700">ne pas l’appliquer</span></div>`:''})()}<button class="btn big" data-a="startTpl" data-p="${p.id}" data-t="${nt.id}">▶ Démarrer</button></div>`;
+    if(nt){h+=`<div class="next"><div class="k">Prochaine séance</div><b>${esc(nt.name)}</b>${(()=>{const nm=nextMode(p);return nm?` <span class="tag on">🎯 ${esc(nm.name)}</span>`:''})()}<div class="xs muted">${nt.moduleIds.map(id=>esc(modName(id))).join(' + ')||'Aucun module'}</div>${adaptInfo(nt.moduleIds)}${(()=>{const R=resumeFor();return R?`<div class="xs" style="margin-top:4px;color:var(--ok)">🔄 ${R.lvl===1?'Dernière séance il y a '+gapTxt(R.gap)+' : démarrage en':'Suite du'} mode reprise (charges −${R.pct} %) · <span class="tap" data-a="resumeSkip" style="text-decoration:underline;font-weight:700">ne pas l’appliquer</span></div>`:''})()}<button class="btn big" data-a="startTpl" data-p="${p.id}" data-t="${nt.id}">▶ Démarrer</button><button class="btn ghost" data-a="previewTpl" data-p="${p.id}" data-t="${nt.id}" style="margin-top:8px">👁 Aperçu</button></div>`;
       if(p.templates.length>1)h+=`<div class="chips">${p.templates.filter(t=>t.id!==nt.id).map(t=>`<button class="chip" data-a="startTpl" data-p="${p.id}" data-t="${t.id}">▶ ${esc(t.name)}</button>`).join('')}</div>`}
     else h+=`<p class="muted sm">Ajoute des séances types à ce programme.</p>`;
     h+='</div>'});
@@ -418,20 +419,33 @@ function optsHtml(){const o=S.pendingStart,O=S.opt,md=modeById(O.mode);const p=o
   <div class="fld"><span>Séries</span><div class="seg"><button class="${O.struct==='deg'?'on':''}" data-a="optStruct" data-v="deg">Dégressives</button><button class="${O.struct==='eq'?'on':''}" data-a="optStruct" data-v="eq">Égales</button></div></div>
   <label class="chk"><input type="checkbox" id="optRest" ${O.rest?'checked':''} data-ch="optRestCh"> Repos automatique selon le mode${+md.rest?` (${fmtDur(md.rest)} entre tours)`:' (le mode Normal garde les repos du programme)'}</label>
   <div class="note xs">${it?`Exemple, ${esc(exById(it.exId)?.name||'')} : objectifs <b>${esc(String(prevT).replace(/\//g,' / '))}</b>`:''}${+md.reps||O.struct==='eq'?' · charges calculées depuis ton 1RM estimé (à valider dès la 1ʳᵉ série)':' · charges reprises de la dernière séance'}</div>
-  <button class="btn big wide" data-a="startGo">▶ Démarrer</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`}
+  <button class="btn big wide" data-a="startGo">▶ Démarrer</button><button class="btn ghost wide" data-a="preview">👁 Aperçu de la séance (exercices, objectifs, charges)</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`}
 A.optMode=el=>{S.opt.mode=el.dataset.v;modal(optsHtml())};
 A.optStruct=el=>{S.opt.struct=el.dataset.v;modal(optsHtml())};
 A.optRestCh=el=>{S.opt.rest=el.checked};
 A.startGo=()=>{const o=S.pendingStart;const O=S.opt;db.settings.lastStruct=O.struct;db.settings.restAuto=O.rest;if(!(o.programId&&nextMode(progById(o.programId))))db.settings.lastMode=O.mode;closeModal();startWorkout({...o,opts:{...O}})};
+function buildActive(o){const loc=curLoc();let nS=0,nM=0;const blocks=[];
+  o.moduleIds.forEach(mid=>{const m=db.modules.find(x=>x.id===mid);if(m)m.blocks.forEach(b=>blocks.push({type:b.type,sets:+b.sets||1,rest:+b.rest||0,restEnd:+b.restEnd||0,module:m.name,log:[],
+    items:clone(b.items).map(it=>{const s=subFor(it.exId,loc);if(s&&s!==it.exId){nS++;return {...it,orig:it.exId,exId:s,load:'',band:''}}if(!s){nM++;return {...it,missing:true}}return it})}))});
+  if(!blocks.length)return null;
+  const md=modeById(o.opts.mode),Rm=+md.reps||0;blocks.forEach(b=>{if(o.opts.rest&&Rm&&+md.rest)b.rest=+md.rest;b.items.forEach(it=>{it.reps=adaptTarget(it.reps,b.sets,Rm,o.opts.struct)})});
+  return {nS,nM,loc,act:{id:uid(),start:Date.now(),loc:loc.id,resume:resumeFor(),mode:{id:md.id,name:md.name,reps:Rm,struct:o.opts.struct},name:o.name+(loc.id!==db.settings.locations[0].id?' · '+loc.name:''),programId:o.programId||null,templateId:o.templateId||null,blocks,pendingRP:null}}}
+function previewHtml(){const o=S.pendingStart,O=S.opt;const B=buildActive({...o,opts:{...O}});if(!B)return '<p>Séance vide.</p><button class="btn ghost wide" data-a="closeModal">Fermer</button>';
+  const keep=db.active;db.active=B.act;let h='';
+  try{const a=B.act;h+=`<h3>👁 Aperçu · ${esc(a.name)}</h3><div class="xs muted">🎯 ${esc(a.mode.name)} · séries ${a.mode.struct==='eq'?'égales':'dégressives'}${a.resume?` · 🔄 reprise −${a.resume.pct} %`:''} · ${locIcon(a.loc)} ${esc(B.loc.name)}${B.nS?` · ${B.nS} exercice(s) remplacé(s)`:''}</div>`;
+    a.blocks.forEach((b,bi)=>{h+=`<div class="k" style="margin-top:14px">${esc(b.module||'')}</div><div class="xs muted">${BLABEL[b.type]} · ${b.sets} ${b.type==='single'?'séries':'tours'} · ${restTxt(b)}</div>`;
+      b.items.forEach((it,ii)=>{const ex=exById(it.exId)||{name:'?'};const rounds=[];for(let ri=0;ri<b.sets;ri++){const pf=prefill(b,ii,ri);const t=tgtFor(it,ri)||'–';const ld=usesBands(ex)?(pf.band?pf.band+' kg':'?'):isBW(ex)?(+pf.load&&+pf.load!==1?(ex.equip==='trx'?'TRX ':'PDC ')+'×'+(+pf.load).toLocaleString('fr-FR',{maximumFractionDigits:2}):(ex.equip==='trx'?'TRX':'PDC')):(pf.load!==''&&pf.load!=null?fmtNum(+pf.load)+U(ex):'?');rounds.push(`<b>${esc(t)}</b>${ex.mode==='time'?' s':''} × ${ld}${isRp(it,ri,b)&&!a.resume?' <span class="rpx">+RP</span>':''}`)}
+        h+=`<div class="li"><div class="sm"><b>${b.type==='single'?'':String.fromCharCode(65+ii)+'. '}${esc(ex.name)}</b> ${ex.muscle?`<span class="mus" style="margin:0 0 0 4px">${muscLabel(ex)}</span>`:''}</div>${it.orig?`<div class="xs muted">↺ remplace ${esc(exById(it.orig)?.name||'')}</div>`:''}${it.missing?'<div class="xs" style="color:var(--bad)">⚠ pas faisable ici</div>':''}<div class="xs" style="margin-top:3px">${rounds.map((x,i)=>`<span style="white-space:nowrap">${b.type==='single'?'S':'T'}${i+1} : ${x}</span>`).join(' · ')}</div></div>`})});
+  }finally{db.active=keep}
+  return h+`<p class="xs muted" style="margin-top:10px">Charges = propositions (dernière séance ou 1RM estimé selon le mode) : tu pourras les corriger à chaque série.</p><button class="btn big wide" data-a="startGo">▶ Démarrer</button><button class="btn ghost wide" data-a="optBack">← Modifier les options</button>`}
+A.preview=()=>modal(previewHtml());
+A.optBack=()=>modal(optsHtml());
+A.previewTpl=el=>{const p=progById(el.dataset.p);const t=p&&p.templates.find(x=>x.id===el.dataset.t);if(!t)return;const nm=nextMode(p);S.pendingStart={name:t.name,programId:p.id,templateId:t.id,moduleIds:t.moduleIds};S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false};if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(previewHtml())};
 async function startWorkout(o){
   if(!o.opts){const p=o.programId&&progById(o.programId),nm=nextMode(p);S.pendingStart=o;S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false};if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(optsHtml());return}
   if(db.active&&!(await ask('Une séance est déjà en cours. La remplacer ? (elle sera perdue)','Remplacer')))return;
-  const loc=curLoc();let nS=0,nM=0;const blocks=[];
-  o.moduleIds.forEach(mid=>{const m=db.modules.find(x=>x.id===mid);if(m)m.blocks.forEach(b=>blocks.push({type:b.type,sets:+b.sets||1,rest:+b.rest||0,restEnd:+b.restEnd||0,module:m.name,log:[],
-    items:clone(b.items).map(it=>{const s=subFor(it.exId,loc);if(s&&s!==it.exId){nS++;return {...it,orig:it.exId,exId:s,load:'',band:''}}if(!s){nM++;return {...it,missing:true}}return it})}))});
-  if(!blocks.length)return toast('Cette séance ne contient aucun module');
-  const md=modeById(o.opts.mode),Rm=+md.reps||0;blocks.forEach(b=>{if(o.opts.rest&&Rm&&+md.rest)b.rest=+md.rest;b.items.forEach(it=>{it.reps=adaptTarget(it.reps,b.sets,Rm,o.opts.struct)})});
-  S.open={};db.active={id:uid(),start:Date.now(),loc:loc.id,resume:resumeFor(),mode:{id:md.id,name:md.name,reps:Rm,struct:o.opts.struct},name:o.name+(loc.id!==db.settings.locations[0].id?' · '+loc.name:''),programId:o.programId||null,templateId:o.templateId||null,blocks,pendingRP:null};save();wake(true);go('workout');if(nS||nM)setTimeout(()=>toast(`${loc.icon||''} ${nS} exercice(s) adapté(s) au matériel${nM?` · ${nM} sans équivalent (⇄)`:''}`),300);
+  const B=buildActive(o);if(!B)return toast('Cette séance ne contient aucun module');const {nS,nM,loc}=B;
+  S.open={};db.active=B.act;save();wake(true);go('workout');if(nS||nM)setTimeout(()=>toast(`${loc.icon||''} ${nS} exercice(s) adapté(s) au matériel${nM?` · ${nM} sans équivalent (⇄)`:''}`),300);
 }
 A.swap=el=>{const bi=+el.dataset.bi,ii=+el.dataset.ii,it=db.active.blocks[bi].items[ii];const ex=exById(it.orig||it.exId)||{};const loc=locById(db.active.loc);
   const same=db.exercises.filter(e=>e.move&&e.move===ex.move&&e.id!==it.exId);const okS=same.filter(e=>feasible(e,loc)),noS=same.filter(e=>!feasible(e,loc));
