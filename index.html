@@ -129,8 +129,9 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.0.0',APP_DATE='21/11/2026';
+const APP_VERSION='2.1.0',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.1.0','21/11/2026',['Mes vidéos : enregistre les liens des vidéos YouTube trouvées (avec un nom et une miniature) dans la démonstration de chaque exercice ; bouton 📋 pour coller le lien','Pendant la séance, l’icône 🎬 signale un exercice qui a des vidéos enregistrées','Les vidéos sont incluses dans la sauvegarde']],
  ['2.0.0','21/11/2026',['Démonstration des exercices : mannequin 3D animé (épuré, sans compte) avec le matériel (haltères, barre, élastiques, poulie, TRX, banc) et les muscles travaillés surlignés','Bouton 👁 à côté de chaque exercice pendant la séance et dans la fiche exercice ; glisser pour faire tourner','Lien « ▶ Vidéos de démonstration » : recherche YouTube sur l’exercice']],
  ['1.9.0','21/11/2026',['Aperçu de la séance avant de démarrer : exercices (avec remplacements), muscle, objectifs et charges proposées tour par tour, selon le mode, la reprise et le lieu','Bouton « 👁 Aperçu » sur l’accueil et dans la fenêtre de démarrage']],
  ['1.8.3','21/11/2026',['Historique : les pompes de WO 1 · Série 4 sont rattachées à « Pompes pieds surélevés » (pieds à hauteur de banc), module WO 1 · Série 4 mis à jour']],
@@ -485,7 +486,7 @@ function blockCard(b,bi){
     if(done)h+=`<table class="log">${b.log.map((r,ri)=>`<tr><td class="muted">${single?'S':'T'}${ri+1}</td>${r.map((s,ii)=>`<td>${single?'':'<span class="muted">'+String.fromCharCode(65+ii)+'</span> '}${s?fmtSet(s):'–'}</td>`).join('')}</tr>`).join('')}</table>`;
     return h+`<button class="btn ghost sm" data-a="toggleBlk" data-bi="${bi}" style="margin-top:8px">${complete?'Afficher / ajouter un tour':'Afficher ce bloc'}</button></div>`}
   b.items.forEach((it,ii)=>{const ex=exById(it.exId)||{name:'(supprimé)'};const last=getLastSets(it.exId,a.start);const hint=complete||a.resume||(a.mode&&(a.mode.reps||a.mode.struct==='eq'))?'':progressHint(it,last);
-    h+=`<div class="exh"><b>${L(ii)}${esc(ex.name)}</b><button class="icon sw" data-a="swap" data-bi="${bi}" data-ii="${ii}" title="Remplacer par un équivalent">⇄</button><button class="icon sw" data-a="demo" data-id="${ex.id}" title="Voir le mouvement">👁</button>${ex.muscle?` <span class="mus" style="margin:0 0 0 4px">${muscLabel(ex)}</span>`:''} <span class="xs muted">· ${EQUIP[ex.equip]||''}${ex.anchor&&ex.anchor!==''?' · '+ANCH[ex.anchor]:''} · obj. ${esc(tgtParts(it).join(' / ')||'–')}${ex.mode==='time'?' s':''}${it.rp?' · ⚡RP '+(it.rp==='last'?'dernière série':'chaque série')+' '+fmtDur(it.rpSec||db.settings.rpSec):''}${ex.uni?' · G puis D':''}</span>${last?`<div class="xs muted">Dernière fois (${fmtDate(last.session.start)}) : ${last.sets.map(fmtSet).join(' · ')}</div>`:'<div class="xs muted">Première fois sur cet exercice</div>'}${hint?`<div class="xs hint">${hint}</div>`:''}${complete?'':targetHint(it,ex,done)}${ex.notes?`<div class="xs muted">📝 ${esc(ex.notes)}</div>`:''}${it.orig?`<div class="xs muted">↺ remplace « ${esc(exById(it.orig)?.name)} »</div>`:''}${it.missing?'<div class="xs" style="color:var(--bad)">⚠ Pas faisable avec le matériel du lieu : touche ⇄ pour choisir un équivalent</div>':''}</div>`});
+    h+=`<div class="exh"><b>${L(ii)}${esc(ex.name)}</b><button class="icon sw" data-a="swap" data-bi="${bi}" data-ii="${ii}" title="Remplacer par un équivalent">⇄</button><button class="icon sw" data-a="demo" data-id="${ex.id}" title="Voir le mouvement">${(ex.videos||[]).length?'🎬':'👁'}</button>${ex.muscle?` <span class="mus" style="margin:0 0 0 4px">${muscLabel(ex)}</span>`:''} <span class="xs muted">· ${EQUIP[ex.equip]||''}${ex.anchor&&ex.anchor!==''?' · '+ANCH[ex.anchor]:''} · obj. ${esc(tgtParts(it).join(' / ')||'–')}${ex.mode==='time'?' s':''}${it.rp?' · ⚡RP '+(it.rp==='last'?'dernière série':'chaque série')+' '+fmtDur(it.rpSec||db.settings.rpSec):''}${ex.uni?' · G puis D':''}</span>${last?`<div class="xs muted">Dernière fois (${fmtDate(last.session.start)}) : ${last.sets.map(fmtSet).join(' · ')}</div>`:'<div class="xs muted">Première fois sur cet exercice</div>'}${hint?`<div class="xs hint">${hint}</div>`:''}${complete?'':targetHint(it,ex,done)}${ex.notes?`<div class="xs muted">📝 ${esc(ex.notes)}</div>`:''}${it.orig?`<div class="xs muted">↺ remplace « ${esc(exById(it.orig)?.name)} »</div>`:''}${it.missing?'<div class="xs" style="color:var(--bad)">⚠ Pas faisable avec le matériel du lieu : touche ⇄ pour choisir un équivalent</div>':''}</div>`});
   if(done)h+=`<table class="log">${b.log.map((r,ri)=>`<tr><td class="muted">${single?'S':'T'}${ri+1}</td>${r.map((s,ii)=>`<td>${single?'':'<span class="muted">'+String.fromCharCode(65+ii)+'</span> '}${s?fmtSet(s):'–'}</td>`).join('')}</tr>`).join('')}</table>`;
   const p=a.pendingRP;
   if(p&&p.bi===bi){
@@ -1012,7 +1013,19 @@ function viewer3d(el,ex){
 
 /* ================= Démo d'exercice ================= */
 let VW=null;
-function closeDemo(){if(VW){try{VW.stop()}catch(_){}VW=null}const d=$('#demo');d.hidden=true;d.innerHTML=''}
+const ytId=u=>{const m=String(u).match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/|\/live\/)([\w-]{11})/);return m?m[1]:null};
+function vidHtml(ex){const L=ex.videos||[];
+ return `<div class="k" style="margin:4px 0 6px">🎬 Mes vidéos${L.length?' ('+L.length+')':''}</div>${L.map((v,i)=>{const id=ytId(v.url);return `<div class="li row sb" style="gap:8px;align-items:center"><a href="${esc(v.url)}" target="_blank" rel="noopener" class="row" style="gap:10px;align-items:center;text-decoration:none;color:inherit;flex:1;min-width:0">${id?`<img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" onerror="this.style.opacity=0" style="width:96px;height:54px;object-fit:cover;border-radius:8px;flex:none;background:#333">`:'<span style="font-size:26px">▶</span>'}<span style="min-width:0"><b class="sm" style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(v.label||'Vidéo')}</b><span class="xs muted">ajoutée le ${new Date(v.added).toLocaleDateString('fr-FR')}</span></span></a><button class="demo-b" data-a="vidDel" data-id="${ex.id}" data-i="${i}" title="Supprimer">🗑</button></div>`}).join('')}
+ <div class="xs muted" style="margin:6px 0 4px">Sur YouTube : <b>Partager → Copier le lien</b>, puis colle-le ici.</div>
+ <div class="row" style="gap:6px"><input id="vidUrl" placeholder="https://youtu.be/…" inputmode="url" style="flex:1;min-width:0"><button class="btn ghost" data-a="vidPaste" title="Coller">📋</button></div>
+ <div class="row" style="gap:6px;margin:6px 0 12px"><input id="vidLbl" placeholder="Nom (facultatif) : ex. bonne prise, tempo…" style="flex:1;min-width:0"><button class="btn" data-a="vidAdd" data-id="${ex.id}">＋ Garder</button></div>`}
+A.vidPaste=async()=>{try{const t=await navigator.clipboard.readText();if(t){$('#vidUrl').value=t.trim();$('#vidLbl').focus()}else toast('Presse-papier vide')}catch(_){toast('Colle le lien à la main (appui long → Coller)')}};
+A.vidAdd=el=>{const ex=exById(el.dataset.id);if(!ex)return;let u=($('#vidUrl').value||'').trim();const m=u.match(/https?:\/\/\S+/);u=m?m[0]:u;
+ if(!/^https?:\/\/\S+\.\S+/.test(u)){toast('⚠ Lien invalide : colle une adresse https://…');return}
+ ex.videos=ex.videos||[];if(ex.videos.some(v=>v.url===u)){toast('Déjà enregistrée');return}
+ ex.videos.push({url:u,label:($('#vidLbl').value||'').trim()||('Vidéo '+(ex.videos.length+1)),added:Date.now()});S.vidDirty=1;save();$('#vidBox').innerHTML=vidHtml(ex);toast('🎬 Vidéo enregistrée')};
+A.vidDel=el=>{const ex=exById(el.dataset.id);if(!ex||!ex.videos)return;const v=ex.videos[+el.dataset.i];if(!v||!confirm('Supprimer « '+v.label+' » ?'))return;ex.videos.splice(+el.dataset.i,1);if(!ex.videos.length)delete ex.videos;S.vidDirty=1;save();$('#vidBox').innerHTML=vidHtml(ex)};
+function closeDemo(){if(VW){try{VW.stop()}catch(_){}VW=null}const d=$('#demo');d.hidden=true;d.innerHTML='';if(S.vidDirty){S.vidDirty=0;render()}}
 A.closeDemo=()=>closeDemo();
 A.demo=el=>{const ex=exById(el.dataset.id);if(!ex)return;closeDemo();
  const yt='https://www.youtube.com/results?search_query='+encodeURIComponent(ex.name+' exercice musculation technique');
@@ -1021,7 +1034,8 @@ A.demo=el=>{const ex=exById(el.dataset.id);if(!ex)return;closeDemo();
  <div id="v3d" class="v3d"><div class="sm muted" style="padding:120px 10px;text-align:center">Chargement du mannequin…</div></div><div class="xs muted" style="text-align:center">↔ glisse pour faire tourner le mannequin · schéma indicatif</div>
  <div class="lg xs"><span><i style="background:#f08a6c"></i>Principal : ${muscLabel(ex)}</span>${sec.length?`<span><i style="background:#eeb39b"></i>Secondaire : ${sec.map(esc).join(', ')}</span>`:''}</div>
  ${ex.notes?`<div class="xs muted" style="margin-bottom:10px">📝 ${esc(ex.notes)}</div>`:''}
- <a class="btn wide" href="${yt}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">▶ Vidéos de démonstration (YouTube)</a><button class="btn ghost wide" data-a="closeDemo">Fermer</button></div>`;d.hidden=false;
+ <div id="vidBox">${vidHtml(ex)}</div>
+ <a class="btn ${(ex.videos||[]).length?'ghost ':''}wide" href="${yt}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">🔎 Chercher des vidéos sur YouTube</a><button class="btn ghost wide" data-a="closeDemo">Fermer</button></div>`;d.hidden=false;
  loadThree().then(()=>{const v=$('#v3d');if(!v||d.hidden)return;try{VW=viewer3d(v,ex)}catch(err){console.error(err);v.innerHTML='<p class="sm" style="padding:20px">Animation indisponible sur cet appareil.</p>'}})
   .catch(()=>{const v=$('#v3d');if(v)v.innerHTML='<p class="sm" style="padding:30px 16px;text-align:center">📡 Le mannequin 3D se charge à la première ouverture avec une connexion. Ensuite il fonctionne hors ligne.<br>Le lien vidéo marche dès que tu es en ligne.</p>'})};
 </script>
