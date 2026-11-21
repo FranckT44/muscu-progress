@@ -132,8 +132,10 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.12.3',APP_DATE='21/11/2026';
+const APP_VERSION='2.12.5',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.12.5','21/11/2026',['Démarrage : choix de l’enchaînement « 🔁 En tours (circuit) » ou « ➡️ Exercice par exercice » (toutes les séries d’un exercice puis le suivant), mémorisé ; l’aperçu suit ce choix']],
+ ['2.12.4','21/11/2026',['Séance en cours : bouton ⏸ Pause / ▶ Reprendre pour arrêter le compteur de durée (le repos en cours est aussi mis en pause) ; la durée enregistrée exclut les pauses','Bouton ↺ 0:00 pour remettre le compteur à zéro tant qu’aucune série n’est validée']],
  ['2.12.3','21/11/2026',['Démarrage d’une séance : le mode reprise s’affiche dans la fenêtre (écart depuis la dernière séance, baisse des charges, séance n/N) avec une case pour l’appliquer ou non ; s’il avait été ignoré, lien « le réactiver »']],
  ['2.12.2','21/11/2026',['Progrès → Historique : séances regroupées par mois (nombre de séances et volume du mois), chaque mois se replie d’un tap ; ⊞ Tout déplier · ⊟ Tout replier ; filtre « Mois » pour n’afficher qu’un mois ; 📝 pour les séances saisies après coup']],
  ['2.12.1','21/11/2026',['Sauvegarde dans un dossier (PC) : autorisation demandée dès le choix du dossier, bouton « ✍️ Tester l’écriture » et affichage de la cause exacte en cas d’échec']],
@@ -386,7 +388,7 @@ function stopTimer(){T.running=false;T.hideAt=0;$('#tbar').hidden=true}
 const tRem=()=>T.paused?T.rem:(T.end-Date.now())/1000;
 function paintTimer(){if($('#tbar').hidden)return;const r=T.running?Math.max(0,tRem()):0;$('#ttime').textContent=T.running?fmtTime(Math.ceil(r)):'GO !';$('#tlabel').textContent=T.running?T.label+(T.paused?' (pause)':''):'Repos terminé 💪';$('#tprog').style.width=(T.running?(1-r/T.dur)*100:100)+'%';$('#tpause').textContent=T.paused?'▶':'⏸'}
 setInterval(()=>{
-  const el=$('#elapsed');if(el&&db.active&&!db.active.past)el.textContent=fmtTime((Date.now()-db.active.start)/1000);
+  const el=$('#elapsed');if(el&&db.active&&!db.active.past)el.textContent=fmtTime(actSec(db.active));
   if(!T.running&&T.hideAt&&Date.now()>T.hideAt){$('#tbar').hidden=true;T.hideAt=0}
   if(!T.running||T.paused)return;
   const r=tRem(),c=Math.ceil(r);
@@ -468,15 +470,16 @@ function optsHtml(){const o=S.pendingStart,O=S.opt,md=modeById(O.mode);const p=o
   <div class="fld"><span>Séries</span><div class="seg"><button class="${O.struct==='deg'?'on':''}" data-a="optStruct" data-v="deg">Dégressives</button><button class="${O.struct==='eq'?'on':''}" data-a="optStruct" data-v="eq">Égales</button></div></div>
   <label class="chk"><input type="checkbox" id="optRest" ${O.rest?'checked':''} data-ch="optRestCh"> Repos automatique selon le mode${+md.rest?` (${fmtDur(md.rest)} entre tours)`:' (le mode Normal garde les repos du programme)'}</label>
   <div class="note xs">${it?`Exemple, ${esc(exById(it.exId)?.name||'')} : objectifs <b>${esc(String(prevT).replace(/\//g,' / '))}</b>`:''}${+md.reps||O.struct==='eq'?' · charges calculées depuis ton 1RM estimé (à valider dès la 1ʳᵉ série)':' · charges reprises de la dernière séance'}</div>
-  ${resumeHtml()}${pastHtml()}<button class="btn big wide" data-a="startGo">${O.past?'📝 Saisir les séries':'▶ Démarrer'}</button><button class="btn ghost wide" data-a="preview">👁 Aperçu de la séance (exercices, objectifs, charges)</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`}
+  ${splitHtml()}${resumeHtml()}${pastHtml()}<button class="btn big wide" data-a="startGo">${O.past?'📝 Saisir les séries':'▶ Démarrer'}</button><button class="btn ghost wide" data-a="preview">👁 Aperçu de la séance (exercices, objectifs, charges)</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`}
 A.optMode=el=>{S.opt.mode=el.dataset.v;modal(optsHtml())};
 A.optStruct=el=>{S.opt.struct=el.dataset.v;modal(optsHtml())};
 A.optRestCh=el=>{S.opt.rest=el.checked};
-A.startGo=()=>{const o=S.pendingStart;const O=S.opt;if(O.past&&!pastOk(O))return;db.settings.lastStruct=O.struct;db.settings.restAuto=O.rest;if(!(o.programId&&nextMode(progById(o.programId))))db.settings.lastMode=O.mode;closeModal();startWorkout({...o,opts:{...O}})};
+A.startGo=()=>{const o=S.pendingStart;const O=S.opt;if(O.past&&!pastOk(O))return;db.settings.lastSplit=!!O.split;db.settings.lastStruct=O.struct;db.settings.restAuto=O.rest;if(!(o.programId&&nextMode(progById(o.programId))))db.settings.lastMode=O.mode;closeModal();startWorkout({...o,opts:{...O}})};
 function buildActive(o){const loc=curLoc();let nS=0,nM=0;const blocks=[];
   o.moduleIds.forEach(mid=>{const m=db.modules.find(x=>x.id===mid);if(m)m.blocks.forEach(b=>blocks.push({type:b.type,sets:+b.sets||1,rest:+b.rest||0,restEnd:+b.restEnd||0,module:m.name,log:[],
     items:clone(b.items).map(it=>{const s=subFor(it.exId,loc);if(s&&s!==it.exId){nS++;return {...it,orig:it.exId,exId:s,load:'',band:''}}if(!s){nM++;return {...it,missing:true}}return it})}))});
   if(!blocks.length&&!o.free)return null;
+  if(o.opts&&o.opts.split){const out=[];blocks.forEach(b=>{if(b.items.length<2){out.push(b);return}b.items.forEach((it,i)=>out.push({type:'single',sets:b.sets,rest:b.rest,restEnd:i===b.items.length-1?b.restEnd:0,module:b.module,log:[],items:[it],fromType:b.type}))});blocks.splice(0,blocks.length,...out)}
   const md=modeById(o.opts.mode),Rm=+md.reps||0;blocks.forEach(b=>{if(o.opts.rest&&Rm&&+md.rest)b.rest=+md.rest;b.items.forEach(it=>{it.reps=adaptTarget(it.reps,b.sets,Rm,o.opts.struct)})});
   return {nS,nM,loc,act:{id:uid(),start:Date.now(),loc:loc.id,resume:o.opts&&(o.opts.noResume||o.opts.past)?null:resumeFor(),mode:{id:md.id,name:md.name,reps:Rm,struct:o.opts.struct},name:o.name+(loc.id!==db.settings.locations[0].id?' · '+loc.name:''),programId:o.programId||null,templateId:o.templateId||null,free:o.free?1:undefined,blocks,pendingRP:null}}}
 function previewHtml(){const o=S.pendingStart,O=S.opt;const B=buildActive({...o,opts:{...O}});if(!B)return '<p>Séance vide.</p><button class="btn ghost wide" data-a="closeModal">Fermer</button>';
@@ -489,9 +492,9 @@ function previewHtml(){const o=S.pendingStart,O=S.opt;const B=buildActive({...o,
   return h+`<p class="xs muted" style="margin-top:10px">Charges = propositions (dernière séance ou 1RM estimé selon le mode) : tu pourras les corriger à chaque série.</p><button class="btn big wide" data-a="startGo">▶ Démarrer</button><button class="btn ghost wide" data-a="optBack">← Modifier les options</button>`}
 A.preview=()=>modal(previewHtml());
 A.optBack=()=>modal(optsHtml());
-A.previewTpl=el=>{const p=progById(el.dataset.p);const t=p&&p.templates.find(x=>x.id===el.dataset.t);if(!t)return;const nm=nextMode(p);S.pendingStart={name:t.name,programId:p.id,templateId:t.id,moduleIds:t.moduleIds};S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false,...pastInit()};S.pastPre=false;if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(previewHtml())};
+A.previewTpl=el=>{const p=progById(el.dataset.p);const t=p&&p.templates.find(x=>x.id===el.dataset.t);if(!t)return;const nm=nextMode(p);S.pendingStart={name:t.name,programId:p.id,templateId:t.id,moduleIds:t.moduleIds};S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false,split:!!db.settings.lastSplit,...pastInit()};S.pastPre=false;if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(previewHtml())};
 async function startWorkout(o){
-  if(!o.opts){const p=o.programId&&progById(o.programId),nm=nextMode(p);S.pendingStart=o;S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false,...pastInit()};S.pastPre=false;if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(optsHtml());return}
+  if(!o.opts){const p=o.programId&&progById(o.programId),nm=nextMode(p);S.pendingStart=o;S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false,split:!!db.settings.lastSplit,...pastInit()};S.pastPre=false;if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(optsHtml());return}
   if(db.active&&!(await ask('Une séance est déjà en cours. La remplacer ? (elle sera perdue)','Remplacer')))return;
   const B=buildActive(o);if(!B)return toast('Cette séance ne contient aucun module');const {nS,nM,loc}=B;
   S.open={};db.active=B.act;if(o.opts&&o.opts.past){const P=o.opts;db.active.start=pastStart(P);db.active.past={dur:+P.pDur||60}}save();if(!db.active.past)wake(true);go('workout');if(o.free&&!db.active.blocks.length)setTimeout(()=>A.addExToWorkout(),50);if(nS||nM)setTimeout(()=>toast(`${loc.icon||''} ${nS} exercice(s) adapté(s) au matériel${nM?` · ${nM} sans équivalent (⇄)`:''}`),300);
@@ -548,7 +551,7 @@ function blockCard(b,bi){
 }
 V.workout=()=>{
   const a=db.active;if(!a){S.view='home';return V.home()}
-  let h=`<div class="card hl"><div class="row sb"><div><div class="k">${a.past?'📝 Séance déjà faite — saisie':'Séance en cours'}</div><h2>${esc(a.name)}</h2><div class="sm muted">${a.past?`📅 ${esc(fmtDateLong(a.start))} · durée ${fmtDur(a.past.dur*60)} <button class="link xs" data-a="pastEdit">modifier</button>`:`⏳ <span id="elapsed">${fmtTime((Date.now()-a.start)/1000)}</span>`}</div></div><div class="col"><button class="btn" data-a="finish">${a.past?'Enregistrer ✓':'Terminer ✓'}</button><button class="btn ghost sm" data-a="abandon">Abandonner</button></div></div></div>`;
+  let h=`<div class="card hl"><div class="row sb"><div><div class="k">${a.past?'📝 Séance déjà faite — saisie':'Séance en cours'}</div><h2>${esc(a.name)}</h2><div class="sm muted">${a.past?`📅 ${esc(fmtDateLong(a.start))} · durée ${fmtDur(a.past.dur*60)} <button class="link xs" data-a="pastEdit">modifier</button>`:`${a.pauseAt?'⏸':'⏳'} <span id="elapsed" ${a.pauseAt?'style="opacity:.6"':''}>${fmtTime(actSec(a))}</span> <button class="chip" data-a="sessPause" style="padding:2px 10px;margin-left:6px">${a.pauseAt?'▶ Reprendre':'⏸ Pause'}</button>${!a.blocks.some(b=>b.log.length)?'<button class="chip" data-a="sessReset" style="padding:2px 10px;margin-left:4px" title="Remettre le compteur à zéro">↺ 0:00</button>':''}${a.pauseAt?'<div class="xs" style="color:var(--ac)">Séance en pause : le compteur est arrêté</div>':''}`}</div></div><div class="col"><button class="btn" data-a="finish">${a.past?'Enregistrer ✓':'Terminer ✓'}</button><button class="btn ghost sm" data-a="abandon">Abandonner</button></div></div></div>`;
   if(a.mode&&(a.mode.reps||a.mode.struct==='eq'))h+=`<div class="card" style="border-color:var(--ac2);padding:10px 14px"><span class="sm">🎯 Mode <b>${esc(a.mode.name)}</b> · séries ${a.mode.struct==='eq'?'égales':'dégressives'} · charges calculées depuis le 1RM estimé</span></div>`;
   if(a.resume){const R=a.resume;h+=`<div class="card" style="border-color:var(--ok)"><div class="row sb"><b>🔄 Reprise après ${gapTxt(R.gap)} sans séance</b><span class="tag on">séance ${R.lvl}/${R.n}</span></div><div class="sm" style="margin-top:6px">Charges pré-remplies à <b>−${R.pct} %</b> par rapport à avant la pause${R.lvl>1?' (2ᵉ séance : demi-réduction)':''}. Rest-pause décoché par défaut : arrête plutôt 1 ou 2 reps avant l’échec. Les élastiques ne sont pas réduits automatiquement : prends un cran en dessous si besoin.</div><div class="xs muted" style="margin-top:4px">Cette séance sera marquée « reprise » et ne servira pas de référence de comparaison pour les séances normales.</div><button class="btn ghost sm" data-a="resumeOff" style="margin-top:8px">Désactiver le mode reprise pour cette séance</button></div>`}
   const cur=a.blocks.findIndex(x=>x.log.length<x.sets),pr=a.pendingRP?a.pendingRP.bi:-1;let main='',side='';
@@ -587,7 +590,7 @@ A.finish=()=>{
   modal(`<h3>${a.past?'Enregistrer la séance du '+esc(fmtDate(a.start)):'Terminer la séance'}</h3>${a.free?`<label class="fld"><span>Nom de la séance</span><input id="fName" value="${esc(a.name)}"></label>`:''}<label class="fld"><span>Ressenti global (1 = facile · 10 = épuisant)</span><select id="fRpe">${[1,2,3,4,5,6,7,8,9,10].map(i=>`<option ${i===7?'selected':''}>${i}</option>`).join('')}</select></label><label class="fld"><span>Notes</span><textarea id="fNotes" rows="3" placeholder="Sensations, douleurs, réglages poulie…"></textarea></label><div class="row"><button class="btn ghost" data-a="closeModal">Continuer la séance</button><button class="btn" data-a="finishOk">Enregistrer</button></div>`);
 };
 A.finishOk=()=>{const a=db.active;if(a.pendingRP)a.pendingRP=null;
-  if(a.free&&$('#fName')&&$('#fName').value.trim())a.name=$('#fName').value.trim();const s={id:a.id,start:a.start,end:a.past?a.start+a.past.dur*60000:Date.now(),past:a.past?1:undefined,loc:a.loc,resume:a.resume||null,mode:a.mode||null,name:a.name,programId:a.programId,templateId:a.templateId,rpe:+$('#fRpe').value,notes:$('#fNotes').value.trim(),blocks:a.blocks.filter(b=>b.log.length).map(b=>({type:b.type,sets:b.sets,rest:b.rest,restEnd:b.restEnd||0,module:b.module,items:b.items,log:b.log}))};
+  if(a.free&&$('#fName')&&$('#fName').value.trim())a.name=$('#fName').value.trim();if(a.pauseAt){a.pausedMs=(a.pausedMs||0)+Date.now()-a.pauseAt;a.pauseAt=null}const s={id:a.id,start:a.start,end:a.past?a.start+a.past.dur*60000:Date.now()-(a.pausedMs||0),past:a.past?1:undefined,loc:a.loc,resume:a.resume||null,mode:a.mode||null,name:a.name,programId:a.programId,templateId:a.templateId,rpe:+$('#fRpe').value,notes:$('#fNotes').value.trim(),blocks:a.blocks.filter(b=>b.log.length).map(b=>({type:b.type,sets:b.sets,rest:b.rest,restEnd:b.restEnd||0,module:b.module,items:b.items,log:b.log}))};
   db.sessions.push(s);db.sessions.sort((x,y)=>x.start-y.start);db.active=null;save();closeModal();stopTimer();wake(false);S.viewSession=s.id;go('session');const nr=recordsOf(s).length;toast(nr?`🏆 ${nr} record(s) battu(s) !`:a.past?'📝 Séance du '+fmtDate(s.start)+' enregistrée':'Séance enregistrée 💪');snapAdd('Fin de séance « '+s.name+' »');if(db.settings.autoBk)autoBackup(nr)};
 
 /* ================= Bilan d'une séance ================= */
@@ -951,6 +954,14 @@ function resumeHtml(){const st=db.settings,O=S.opt;if(O.past||!(+st.resumeDays>0
  return ''}
 A.resumeCh=el=>{S.opt.noResume=!el.checked;modal(optsHtml())};
 A.resumeOn=()=>{delete db.settings.resumeSkip;S.opt.noResume=false;save();modal(optsHtml())};
+
+const actSec=a=>Math.max(0,((a.pauseAt||Date.now())-a.start-(a.pausedMs||0))/1000);
+A.sessPause=()=>{const a=db.active;if(!a)return;if(a.pauseAt){a.pausedMs=(a.pausedMs||0)+Date.now()-a.pauseAt;a.pauseAt=null;wake(true);toast('▶ Séance reprise')}else{a.pauseAt=Date.now();if(T.running&&!T.paused)A.tPause();toast('⏸ Séance en pause')}save();render()};
+A.sessReset=()=>{const a=db.active;if(!a||a.blocks.some(b=>b.log.length))return;a.start=Date.now();a.pausedMs=0;a.pauseAt=null;save();render();toast('Compteur remis à zéro')};
+
+function splitHtml(){const o=S.pendingStart;if(!o)return '';const multi=(o.moduleIds||[]).some(mid=>{const m=db.modules.find(x=>x.id===mid);return m&&m.blocks.some(b=>b.items.length>1)});if(!multi)return '';const sp=!!S.opt.split;
+ return `<div class="k" style="margin-top:8px">Enchaînement</div><div class="seg"><button class="${sp?'':'on'}" data-a="splitSet" data-v="0">🔁 En tours (circuit)</button><button class="${sp?'on':''}" data-a="splitSet" data-v="1">➡️ Exercice par exercice</button></div><div class="xs muted" style="margin:-2px 0 6px">${sp?'Toutes les séries d’un exercice, puis le suivant (repos du bloc entre chaque série).':'Un tour = une série de chaque exercice du bloc, puis repos.'}</div>`}
+A.splitSet=el=>{S.opt.split=el.dataset.v==='1';modal(optsHtml())};
 
 /* ================= Séance déjà faite (saisie après coup) ================= */
 const pad2=x=>String(x).padStart(2,'0');
