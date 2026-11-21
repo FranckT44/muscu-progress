@@ -81,13 +81,16 @@ svg.chart{width:100%;height:auto;display:block}
 .exr{padding:10px 0;border-top:1px solid var(--line)}.mini{display:flex;gap:16px;flex-wrap:wrap;margin-top:4px;font-size:13px}
 table.tbl{width:100%;border-collapse:collapse;font-size:13px}.tbl th{text-align:left;color:var(--mu);font-weight:600;font-size:11px}.tbl td,.tbl th{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
 [hidden]{display:none!important}
+.gh .fa,.sgh .fa{display:inline-block;width:24px;color:var(--ac)}
+.gh{cursor:pointer;user-select:none;font-size:22px;font-weight:800;color:var(--tx);margin:22px 0 10px;padding:4px 0 6px 12px;border-left:5px solid var(--ac);letter-spacing:.01em;break-after:avoid}.gh .muted{font-size:15px;font-weight:600}
+.sgh{cursor:pointer;user-select:none;font-size:15px;font-weight:700;color:var(--ac2);padding:12px 0 2px;border-bottom:1px solid var(--line)}
 .wgrid{display:flex;flex-direction:column}.wmain,.wside{display:contents}
 body.wide main{max-width:1320px;padding:16px 24px 190px}
 body.wide .narrow{max-width:760px;margin:0 auto}
 body.wide .cols{column-count:2;column-gap:16px}
 body.wide .cols>*{break-inside:avoid}
 body.wide .cols>.seg,body.wide .cols>select,body.wide .cols>.row,body.wide .cols>.chips,body.wide .cols>.full,body.wide .cols>.link,body.wide .cols>.btn.wide,body.wide .cols>p{column-span:all}
-body.wide .cols>.k{break-after:avoid}
+body.wide .cols>.k,body.wide .cols>.gh{break-after:avoid}
 body.wide .wgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start}
 body.wide .wmain,body.wide .wside{display:block}
 body.wide .wside{position:sticky;top:76px;max-height:calc(100vh - 290px);overflow:auto;padding-right:4px}
@@ -121,8 +124,11 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='1.1.0',APP_DATE='21/11/2026';
+const APP_VERSION='1.3.0',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['1.3.0','21/11/2026',['Liste des exercices, vue « Par matériel » : chaque matériel est détaillé par groupe musculaire (Élastiques › Épaules, Biceps…), chaque niveau se replie']],
+ ['1.2.0','21/11/2026',['Liste des exercices : déplier / replier chaque groupe et sous-groupe d’un tap, boutons « Tout déplier » et « Tout replier » (l’état est mémorisé) ; une recherche déplie tout automatiquement']],
+ ['1.1.1','21/11/2026',['Liste des exercices : titres de groupes (Épaules, Biceps…) beaucoup plus grands et visibles, avec le nombre d’exercices ; sous-groupes agrandis']],
  ['1.1.0','21/11/2026',['Bouton « Tout activer / Tout désactiver » pour le matériel disponible','Numéro de version affiché (Réglages) et liste des nouveautés','Message « Mise à jour installée » à l’ouverture après une mise à jour','Les données sont enregistrées dès la première ouverture','Une restauration compte comme une sauvegarde (plus de faux rappel)']],
  ['1.0.0','21/11/2026',['Première mise en ligne : programmes WO 1 / WO 2, modules, circuits, rest-pause, chrono et sonneries','Lieux (Maison / Déplacement), matériel du jour, équivalences TRX / élastiques SmartWorkout','Sous-groupes musculaires, Iso / Poly, bilan Muscles, 1RM estimé, charges cibles, records','Plaques pour la poulie, mode reprise, affichage DeX multicolonne, sauvegarde vers OneDrive']]];
 /* ================= Constantes & utilitaires ================= */
@@ -618,18 +624,26 @@ V.exercises=()=>{
   const q=(S.exq||'').toLowerCase(),vw=S.exView||'mus';
   let h=`<div class="row" style="margin-bottom:10px"><input type="search" id="exq" placeholder="Rechercher un exercice…" value="${esc(S.exq)}"><button class="btn" data-a="editEx">+ Nouveau</button></div>
   <div class="seg">${[['mus','Par muscle'],['move','Par mouvement'],['eq','Par matériel']].map(([k,l])=>`<button class="${vw===k?'on':''}" data-a="exView" data-v="${k}">${l}</button>`).join('')}</div>
-  <div class="chips" style="margin:-4px 0 10px"><button class="chip ${S.exType==='iso'?'on':''}" data-a="exType" data-v="iso">Isolation</button><button class="chip ${S.exType==='poly'?'on':''}" data-a="exType" data-v="poly">Polyarticulaire</button><button class="chip ${S.exHere?'on':''}" data-a="exHere">${curLoc().icon||''} Faisables : ${esc(curLoc().name)}</button></div>`;
+  <div class="chips" style="margin:-4px 0 10px"><button class="chip ${S.exType==='iso'?'on':''}" data-a="exType" data-v="iso">Isolation</button><button class="chip ${S.exType==='poly'?'on':''}" data-a="exType" data-v="poly">Polyarticulaire</button><button class="chip ${S.exHere?'on':''}" data-a="exHere">${curLoc().icon||''} Faisables : ${esc(curLoc().name)}</button><button class="chip" data-a="foldAll" data-v="0">⊞ Tout déplier</button><button class="chip" data-a="foldAll" data-v="1">⊟ Tout replier</button></div>`;
   const list=db.exercises.filter(e=>(e.name+' '+(e.sub||'')+' '+(e.move||'')).toLowerCase().includes(q)&&(!S.exHere||feasible(e))&&(!S.exType||e.type===S.exType));
-  const row=e=>`<div class="li tap row sb" data-a="editEx" data-id="${e.id}"><span>${esc(e.name)}${vw!=='mus'?`<div class="xs muted">${muscLabel(e)}</div>`:''}${e.sec&&e.sec.length?`<div class="xs muted">+ ${e.sec.map(s=>esc(s.replace('|',' › '))).join(', ')}</div>`:''}</span><span class="row" style="gap:4px">${e.type?`<span class="tag ${e.type==='iso'?'t-single':'t-superset'}">${e.type==='iso'?'Iso':'Poly'}</span>`:''}<span class="tag">${vw==='eq'?'':EQUIP[e.equip]||e.equip}${e.anchor&&e.anchor!=='pieds'?' · '+ANCH[e.anchor].replace('Ancrage ',''):''}${e.unit==='plaque'?' · plaques':''}${e.uni?' · G/D':''}${e.mode==='time'?' · durée':''}</span></span></div>`;
+  const row=e=>`<div class="li tap row sb" data-a="editEx" data-id="${e.id}"><span>${esc(e.name)}${vw==='move'?`<div class="xs muted">${muscLabel(e)}</div>`:vw==='eq'&&e.sub?`<div class="xs muted">${esc(e.sub)}</div>`:''}${e.sec&&e.sec.length?`<div class="xs muted">+ ${e.sec.map(s=>esc(s.replace('|',' › '))).join(', ')}</div>`:''}</span><span class="row" style="gap:4px">${e.type?`<span class="tag ${e.type==='iso'?'t-single':'t-superset'}">${e.type==='iso'?'Iso':'Poly'}</span>`:''}${(()=>{const t=[vw==='eq'?'':EQUIP[e.equip]||e.equip,e.anchor&&e.anchor!=='pieds'?ANCH[e.anchor].replace('Ancrage ',''):'',e.unit==='plaque'?'plaques':'',e.uni?'G/D':'',e.mode==='time'?'durée':''].filter(Boolean).join(' · ');return t?`<span class="tag">${t}</span>`:''})()}</span></div>`;
   const byName=(a,b)=>a.name.localeCompare(b.name);
   if(vw==='mus'){const g={};list.forEach(e=>{(g[e.muscle]=g[e.muscle]||{});(g[e.muscle][e.sub||'']=g[e.muscle][e.sub||'']||[]).push(e)});
     [...GROUPS(),...Object.keys(g).filter(m=>!GROUPS().includes(m))].forEach(m=>{if(!g[m])return;const subs=[...SUBS(m),...Object.keys(g[m]).filter(s=>!SUBS(m).includes(s))];
-      h+=`<div class="k">${esc(m)}</div><div class="card list">${subs.filter(s=>g[m][s]).map(s=>`${s?`<div class="xs" style="color:var(--ac2);font-weight:600;padding-top:8px">${esc(s)}</div>`:`<div class="xs muted" style="padding-top:8px">Sous-groupe non précisé</div>`}${g[m][s].sort(byName).map(row).join('')}`).join('')}</div>`})}
+      const fg=isF('g|'+m);h+=`<div class="gh ${fg?'fold':''}" data-a="fold" data-v="${esc('g|'+m)}"><span class="fa">${fg?'▸':'▾'}</span>${esc(m)} <span class="muted">(${Object.values(g[m]).flat().length})</span></div>`;
+      if(!fg)h+=`<div class="card list">${subs.filter(s=>g[m][s]).map(s=>{const k='s|'+m+'|'+s,fs=isF(k);return `<div class="sgh ${fs?'fold':''}" data-a="fold" data-v="${esc(k)}" ${s?'':'style="color:var(--mu)"'}><span class="fa">${fs?'▸':'▾'}</span>${s?esc(s):'Sous-groupe non précisé'} <span class="xs muted">(${g[m][s].length})</span></div>${fs?'':g[m][s].sort(byName).map(row).join('')}`}).join('')}</div>`})}
   else{const key=vw==='move'?(e=>e.move||'(sans mouvement)'):(e=>EQUIP[e.equip]||e.equip);const g={};list.forEach(e=>(g[key(e)]=g[key(e)]||[]).push(e));
-    Object.keys(g).sort((a,b)=>a.localeCompare(b)).forEach(k=>{h+=`<div class="k">${esc(k)} <span class="muted">(${g[k].length})</span></div><div class="card list">${g[k].sort(byName).map(row).join('')}</div>`})}
+    Object.keys(g).sort((a,b)=>a.localeCompare(b)).forEach(k=>{const fk=isF(vw+'|'+k);h+=`<div class="gh ${fk?'fold':''}" data-a="fold" data-v="${esc(vw+'|'+k)}"><span class="fa">${fk?'▸':'▾'}</span>${esc(k)} <span class="muted">(${g[k].length})</span></div>`;
+      if(fk)return;
+      if(vw==='eq'){const gm={};g[k].forEach(e=>(gm[e.muscle]=gm[e.muscle]||[]).push(e));
+        h+=`<div class="card list">${[...GROUPS(),...Object.keys(gm).filter(m=>!GROUPS().includes(m))].filter(m=>gm[m]).map(m=>{const sk='eqm|'+k+'|'+m,fs=isF(sk);return `<div class="sgh ${fs?'fold':''}" data-a="fold" data-v="${esc(sk)}"><span class="fa">${fs?'▸':'▾'}</span>${esc(m)} <span class="xs muted">(${gm[m].length})</span></div>${fs?'':gm[m].sort(byName).map(row).join('')}`}).join('')}</div>`}
+      else h+=`<div class="card list">${g[k].sort(byName).map(row).join('')}</div>`})}
   if(!list.length)h+='<div class="card muted">Aucun exercice ne correspond aux filtres.</div>';
   return h;
 };
+const isF=k=>!S.exq&&!!(db.settings.fold||{})[k];
+A.fold=el=>{const f=db.settings.fold=db.settings.fold||{};const k=el.dataset.v;if(f[k])delete f[k];else f[k]=1;save();render()};
+A.foldAll=el=>{const f={};if(el.dataset.v==='1'){db.exercises.forEach(e=>{f['g|'+e.muscle]=1;f['move|'+(e.move||'(sans mouvement)')]=1;f['eq|'+(EQUIP[e.equip]||e.equip)]=1})}db.settings.fold=f;save();render()};
 A.exView=el=>{S.exView=el.dataset.v;render()};
 A.exType=el=>{S.exType=S.exType===el.dataset.v?'':el.dataset.v;render()};
 A.exHere=()=>{S.exHere=!S.exHere;render()};
