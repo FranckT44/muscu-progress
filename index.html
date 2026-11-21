@@ -77,6 +77,7 @@ table.log{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px}table.
 .pvh{margin:18px 0 6px;padding:9px 12px;border-left:5px solid var(--c);border-radius:8px;background:rgba(255,255,255,.06);color:var(--c);font-size:17px;font-weight:800;line-height:1.25;display:flex;gap:10px;align-items:center}.pvh .pvn{flex:none;width:26px;height:26px;border-radius:50%;background:var(--c);color:#111;font-size:14px;display:flex;align-items:center;justify-content:center}.pvm{margin:2px 0 4px 6px;padding-left:10px;border-left:2px solid var(--c);font-size:13px;color:#d6d9df}
 .edset{cursor:pointer}.edset .edp{opacity:.45;font-size:11px}.edset:hover{background:rgba(255,255,255,.06)}
 .chip.trans{margin:6px 0 2px 34px;padding:4px 12px;font-size:13px;border-color:var(--ac);color:var(--ac)}
+header.top .topb{min-width:50px;height:46px;font-size:24px;border-radius:12px;margin-left:8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px}header.top .topb span{font-size:14px;font-weight:700}@media (max-width:560px){header.top .topb span{display:none}}
 .demo-b.eye{font-size:20px;line-height:1;padding:3px 7px;margin:0 2px 0 6px;vertical-align:middle;border-radius:9px;background:var(--card2);border:1px solid var(--line)}.demo-b.eye:hover{border-color:var(--ac)}
 .demo-b{background:none;border:0;font-size:22px;padding:2px 6px;cursor:pointer;color:inherit}button.icon[data-a=demo]{font-size:21px;min-width:40px}button.icon.sw[data-a=demo]{height:34px;min-width:42px;font-size:21px}
 .sheet{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
@@ -117,7 +118,7 @@ body.xwide .cols{column-count:3}
 </style>
 </head>
 <body>
-<header class="top"><h1 id="title" data-a="nav" data-v="home">Muscu Progress</h1><button class="icon" data-a="timerPanel" title="Chrono">⏱</button><button class="icon" data-a="go" data-v="settings" title="Réglages">⚙</button></header>
+<header class="top"><h1 id="title" data-a="nav" data-v="home">Muscu Progress</h1><button class="icon topb" data-a="timerPanel" title="Chrono">⏱<span>Chrono</span></button><button class="icon topb" data-a="go" data-v="settings" title="Réglages">⚙<span>Réglages</span></button></header>
 <main id="view"></main>
 <button id="resume" data-a="go" data-v="workout" hidden>● Séance en cours — reprendre</button>
 <div id="tbar" hidden>
@@ -137,8 +138,9 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.13.3',APP_DATE='21/11/2026';
+const APP_VERSION='2.13.4',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.13.4','21/11/2026',['Boutons Chrono ⏱ et Réglages ⚙ en haut de l’écran agrandis (avec leur nom sur grand écran)']],
  ['2.13.3','21/11/2026',['« Overhead press » devient « Arnold press (haltères) » : + Épaules postérieures en secondaire, animation avec rotation (coudes devant, haltères face au visage → bras tendus au-dessus de la tête) ; historique conservé']],
  ['2.13.2','21/11/2026',['Saisie : pour les exercices en G/D (un côté puis l’autre), le champ indique « Reps par côté » pour éviter de saisir le total des deux côtés']],
  ['2.13.1','21/11/2026',['Circuit : sous chaque exercice (sauf le dernier du tour), bouton « ⏱ 25 s → exercice suivant » qui lance une courte récupération ; durée réglable dans Réglages → Chrono (« Transition en circuit »)']],
