@@ -1,6 +1,6 @@
 # Muscu Progress
 
-**Version 1.9.0** (21/11/2026) — le numéro de version installé est visible dans Réglages → À propos.
+**Version 2.0.0** (21/11/2026) — démonstrations 3D des exercices (bouton 👁) et lien vidéos YouTube.
 
 Appli de suivi de musculation (PWA) : programmes, modules réutilisables, trisets/supersets, rest-pause, chrono de repos, bilans de progression.
 Elle fonctionne sur téléphone (Android / iPhone) et sur Windows, hors connexion, sans compte ni serveur.
