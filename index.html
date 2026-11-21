@@ -129,8 +129,9 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.6.0',APP_DATE='21/11/2026';
+const APP_VERSION='2.7.0',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.7.0','21/11/2026',['Modules : rangés par groupe (WO 1, WO 2, En déplacement…, d’après le début du nom avant « · »), chaque groupe et chaque module se replie d’un tap sur son titre','Trois niveaux d’affichage : ⊞ Tout déplier · ☰ Modules en résumé (nom + exercices + ▶) · ⊟ Tout replier (groupes seuls)']],
  ['2.6.0','21/11/2026',['Séance improvisée : démarre une séance vide et choisis les exercices dans la liste (recherche, cases à cocher, ordre conservé), en exercices séparés ou enchaînés (superset / triset / circuit)','Aussi pour une séance déjà faite : « ✍️ Séance improvisée » dans « 📝 Saisir une séance déjà faite »','Pendant toute séance : « ＋ Ajouter des exercices » utilise ce nouveau sélecteur ; « ＋ Nouvel exercice » si l’exercice n’existe pas encore','Nom de la séance improvisée modifiable à l’enregistrement']],
  ['2.5.0','21/11/2026',['Saisie d’une séance déjà faite sans l’appli : bouton « 📝 Saisir une séance déjà faite » (accueil, carte Séance libre) ou case « 📝 Séance déjà faite » au démarrage de n’importe quelle séance','Date, heure de début et durée au choix (modifiables pendant la saisie) ; pas de chrono ni de repos ; la séance est rangée à sa date dans l’historique et compte dans les progrès']],
  ['2.4.0','21/11/2026',['Sauvegarde automatique à la fin de chaque séance (activée par défaut) : sur PC, écriture directe dans un dossier choisi une fois (ex. OneDrive) ; sur téléphone, le menu de partage s’ouvre tout seul','Points de restauration : 10 copies internes automatiques (fin de séance, avant restauration/fusion, nouvelle version) avec retour en un clic dans Réglages','Bilan de séance : « ☁ Sauvegarder maintenant » ou « ✓ Tout est sauvegardé »','« ☁ Envoyer la sauvegarde » écrit dans le dossier choisi quand il y en a un']],
@@ -675,8 +676,17 @@ A.saveProgram=()=>{const d=S.draft;if(!String(d.name).trim())return toast('Donne
 A.delProgram=()=>ask('Supprimer ce programme ? Les séances déjà réalisées restent dans l’historique.','Supprimer').then(ok=>{if(ok){db.programs=db.programs.filter(p=>p.id!==S.draft.id);save();go('programs')}});
 
 /* ================= Modules ================= */
-V.modules=()=>`<button class="btn wide" data-a="newModule">+ Nouveau module</button><p class="xs muted">Un module est un bloc réutilisable (ex : « Haut du corps – Biceps / Triceps / Épaules »), composé d’exercices simples, de supersets ou de trisets.</p>`+
-  db.modules.map(m=>`<div class="card"><h2 class="tap" data-a="editModule" data-id="${m.id}">${esc(m.name)}</h2>${m.tag?`<div class="xs muted">${esc(m.tag)}</div>`:''}<div class="sm">${m.blocks.map(b=>`<div class="li"><span class="tag t-${b.type}">${BLABEL[b.type]}</span> ${b.items.map(i=>esc(exById(i.exId)?.name||'?')+(i.rp?' <span class="rpx xs">⚡RP</span>':'')).join(' + ')} <div class="xs muted">${b.sets} ${b.type==='single'?'séries':'tours'} · ${restTxt(b)}</div></div>`).join('')}</div><div class="row wrap" style="margin-top:8px"><button class="btn sm" data-a="startMod" data-m="${m.id}">▶ Démarrer</button><button class="btn ghost sm" data-a="editModule" data-id="${m.id}">Modifier</button><button class="btn ghost sm" data-a="dupModule" data-id="${m.id}">Dupliquer</button></div></div>`).join('');
+const modGrp=m=>{const k=String(m.name||'').split(' · ');return k.length>1?k[0].trim():'Autres modules'};
+V.modules=()=>{const G={};db.modules.forEach(m=>(G[modGrp(m)]=G[modGrp(m)]||[]).push(m));const keys=Object.keys(G).sort((a,b)=>a==='Autres modules'?1:b==='Autres modules'?-1:a.localeCompare(b,'fr',{numeric:true}));
+ const card=m=>{const k='mod|'+m.id,f=hF(k);
+  if(f)return `<div class="card" style="padding:10px 14px"><div class="row sb" style="gap:8px;align-items:center"><div class="tap" data-a="fold" data-v="${esc(k)}" style="flex:1;min-width:0;cursor:pointer"><b><span class="fa" style="padding:0 6px 0 0">▸</span>${esc(m.name)}</b><div class="xs muted" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${m.blocks.map(b=>BLABEL[b.type]+' : '+b.items.map(i=>esc(exById(i.exId)?.name||'?')).join(' + ')).join(' · ')}</div></div><button class="btn sm" data-a="startMod" data-m="${m.id}" title="Démarrer">▶</button></div></div>`;
+  return `<div class="card"><div class="row sb" style="align-items:flex-start;gap:8px"><h2 class="tap" data-a="fold" data-v="${esc(k)}" style="cursor:pointer;margin:0"><span class="fa" style="padding:0 6px 0 0">▾</span>${esc(m.name)}</h2></div>${m.tag?`<div class="xs muted">${esc(m.tag)}</div>`:''}<div class="sm">${m.blocks.map(b=>`<div class="li"><span class="tag t-${b.type}">${BLABEL[b.type]}</span> ${b.items.map(i=>esc(exById(i.exId)?.name||'?')+(i.rp?' <span class="rpx xs">⚡RP</span>':'')).join(' + ')} <div class="xs muted">${b.sets} ${b.type==='single'?'séries':'tours'} · ${restTxt(b)}</div></div>`).join('')}</div><div class="row wrap" style="margin-top:8px"><button class="btn sm" data-a="startMod" data-m="${m.id}">▶ Démarrer</button><button class="btn ghost sm" data-a="editModule" data-id="${m.id}">Modifier</button><button class="btn ghost sm" data-a="dupModule" data-id="${m.id}">Dupliquer</button></div></div>`};
+ let h=`<button class="btn wide" data-a="newModule">+ Nouveau module</button><p class="xs muted">Un module est un bloc réutilisable (ex : « Haut du corps – Biceps / Triceps / Épaules »), composé d’exercices simples, de supersets ou de trisets. Touche un titre pour le replier ou le déplier.</p>
+ <div class="chips"><button class="chip" data-a="modFold" data-v="0">⊞ Tout déplier</button><button class="chip" data-a="modFold" data-v="1">☰ Modules en résumé</button><button class="chip" data-a="modFold" data-v="2">⊟ Tout replier</button></div>`;
+ keys.forEach(g=>{const fk='modg|'+g,fg=hF(fk);h+=`<div class="gh ${fg?'fold':''}" data-a="fold" data-v="${esc(fk)}"><span class="fa">${fg?'▸':'▾'}</span>${esc(g)} <span class="muted">(${G[g].length})</span></div>`;if(!fg)h+=G[g].map(card).join('')});
+ return h};
+A.modFold=el=>{const v=el.dataset.v,f=db.settings.fold=db.settings.fold||{};Object.keys(f).forEach(k=>{if(/^modg?\|/.test(k))delete f[k]});
+ if(v==='1')db.modules.forEach(m=>f['mod|'+m.id]=1);if(v==='2')db.modules.forEach(m=>{f['modg|'+modGrp(m)]=1;f['mod|'+m.id]=1});save();render()};
 const newItem=()=>({exId:(db.exercises[0]||{}).id||'',reps:'12/10/échec',load:'',band:'',rp:'last',rpSec:db.settings.rpSec});
 const newBlock=t=>({id:uid(),type:t,sets:3,rest:db.settings.defaultRest,restEnd:t==='single'?0:240,items:[]});
 function normMod(d){d.blocks.forEach(b=>{const n=b.type==='circuit'?Math.max(2,b.items.length||4):(BTYPE[b.type]||1);while(b.items.length<n)b.items.push(newItem());if(b.type!=='circuit')b.items.length=n;b.items.forEach(it=>{if(!exById(it.exId))it.exId=(db.exercises[0]||{}).id;})})}
@@ -736,7 +746,7 @@ V.exercises=()=>{
 const hF=k=>!!(db.settings.fold||{})[k];
 const isF=k=>!S.exq&&!!(db.settings.fold||{})[k];
 A.fold=el=>{const f=db.settings.fold=db.settings.fold||{};const k=el.dataset.v;if(f[k])delete f[k];else f[k]=1;save();render()};
-A.foldAll=el=>{const f={};if(el.dataset.v==='1'){db.exercises.forEach(e=>{f['g|'+e.muscle]=1;f['move|'+(e.move||'(sans mouvement)')]=1;f['eq|'+(EQUIP[e.equip]||e.equip)]=1})}db.settings.fold=f;save();render()};
+A.foldAll=el=>{const f=Object.fromEntries(Object.entries(db.settings.fold||{}).filter(([k])=>/^(modg?|home)\|/.test(k)));if(el.dataset.v==='1'){db.exercises.forEach(e=>{f['g|'+e.muscle]=1;f['move|'+(e.move||'(sans mouvement)')]=1;f['eq|'+(EQUIP[e.equip]||e.equip)]=1})}db.settings.fold=f;save();render()};
 A.exView=el=>{S.exView=el.dataset.v;render()};
 A.exType=el=>{S.exType=S.exType===el.dataset.v?'':el.dataset.v;render()};
 A.exHere=()=>{S.exHere=!S.exHere;render()};
