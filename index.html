@@ -121,6 +121,10 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
+const APP_VERSION='1.1.0',APP_DATE='21/11/2026';
+const CHANGELOG=[
+ ['1.1.0','21/11/2026',['Numéro de version affiché (Réglages) et liste des nouveautés','Message « Mise à jour installée » à l’ouverture après une mise à jour','Les données sont enregistrées dès la première ouverture','Une restauration compte comme une sauvegarde (plus de faux rappel)']],
+ ['1.0.0','21/11/2026',['Première mise en ligne : programmes WO 1 / WO 2, modules, circuits, rest-pause, chrono et sonneries','Lieux (Maison / Déplacement), matériel du jour, équivalences TRX / élastiques SmartWorkout','Sous-groupes musculaires, Iso / Poly, bilan Muscles, 1RM estimé, charges cibles, records','Plaques pour la poulie, mode reprise, affichage DeX multicolonne, sauvegarde vers OneDrive']]];
 /* ================= Constantes & utilitaires ================= */
 const DB_KEY='muscu-progress.v2';
 const EQUIP={halteres:'Haltères',barre:'Barre',poulie:'Poulie',machine:'Machine',elastique:'Élastiques',barre_el:'Barre + élastiques',trx:'TRX',traction:'Barre de traction',pdc:'Poids du corps'};
@@ -661,6 +665,7 @@ V.settings=()=>{const st=db.settings;return `<div class="card"><div class="k">Li
 <label class="chk"><input type="checkbox" id="sSound" ${st.sound?'checked':''}> Bips sonores (3-2-1 puis fin)</label><label class="chk"><input type="checkbox" id="sVib" ${st.vibrate?'checked':''}> Vibration à la fin (Android)</label><label class="chk"><input type="checkbox" id="sWake" ${st.wake?'checked':''}> Garder l’écran allumé pendant la séance</label><button class="btn" data-a="saveSettings">Enregistrer les réglages</button></div>
 <div class="card"><div class="k">Affichage</div><label class="fld"><span>Mise en page</span><select id="sLayout"><option value="auto" ${st.layout==='auto'?'selected':''}>Automatique (large seulement avec souris sur grand écran : DeX, PC)</option><option value="mobile" ${st.layout==='mobile'?'selected':''}>Toujours mobile (1 colonne)</option><option value="wide" ${st.layout==='wide'?'selected':''}>Toujours large (multicolonne)</option></select></label></div>
 <div class="card"><div class="k">Données</div><p class="xs muted">Tout est stocké sur cet appareil. Dernière sauvegarde : <b>${st.lastBackup?fmtDateLong(st.lastBackup):'jamais'}</b>. « Envoyer vers OneDrive » ouvre le menu de partage du téléphone : choisis OneDrive, le dossier, et c’est fait.</p><div class="row wrap"><button class="btn" data-a="shareBackup">☁ Envoyer la sauvegarde (OneDrive…)</button><button class="btn ghost" data-a="exportJson">⬇ Télécharger (.json)</button><button class="btn ghost" data-a="importJson">⬆ Restaurer</button><button class="btn ghost" data-a="exportCsv">⬇ Export Excel (.csv)</button></div><input type="file" id="fImport" data-ch="doImport" accept=".json,.txt,application/json,text/plain" hidden><button class="btn danger ghost sm" data-a="resetAll" style="margin-top:14px">Revenir aux données de départ (import Excel)</button></div>
+<div class="card"><div class="k">À propos</div><div><b>Muscu Progress v${APP_VERSION}</b> <span class="xs muted">· ${APP_DATE}</span></div><details style="margin-top:8px"><summary class="sm" style="cursor:pointer">Nouveautés des versions</summary>${CHANGELOG.map(([v,d,l])=>`<div style="margin-top:8px"><b class="sm">v${v}</b> <span class="xs muted">${d}</span><ul class="sm" style="margin:4px 0 0;padding-left:18px">${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</details></div>
 <p class="xs muted">${db.sessions.length} séances · ${db.exercises.length} exercices · ${db.modules.length} modules · ${db.programs.length} programmes</p>`};
 function readBands(){db.settings.bands=db.settings.bands.map((b,i)=>({name:($(`#bn-${i}`)?.value||b.name).trim(),kg:+($(`#bk-${i}`)?.value??b.kg)||0,n:+($(`#bq-${i}`)?.value??b.n)||1})).filter(b=>b.name);
   db.settings.locations.forEach((l,li)=>{const n=$(`#lnm-${li}`);if(!n)return;l.name=n.value.trim()||l.name;l.icon=$(`#lic-${li}`).value.trim();l.equip=[...document.querySelectorAll(`.leq[data-l="${li}"]:checked`)].map(x=>x.value);l.anchors=[...document.querySelectorAll(`.lan[data-l="${li}"]:checked`)].map(x=>x.value)})}
@@ -677,7 +682,7 @@ A.shareBackup=async()=>{const txt=JSON.stringify(db);const name=`muscu-sauvegard
 function backupDue(){const lb=+db.settings.lastBackup||0;const since=db.sessions.filter(s=>s.end>lb).length;if(!db.sessions.length||!since)return null;const days=lb?Math.floor((Date.now()-lb)/864e5):null;if(!lb||since>=3||days>=7)return {since,days};return null}
 A.importJson=()=>$('#fImport').click();
 A.doImport=el=>{const f=el.files&&el.files[0];if(!f)return;f.text().then(t=>{let d;try{d=JSON.parse(t)}catch(e){return toast('Fichier invalide')}if(!d||!Array.isArray(d.exercises))return toast('Ce fichier n’est pas une sauvegarde Muscu Progress');
-  ask(`Remplacer les données de cet appareil par cette sauvegarde (${(d.sessions||[]).length} séances) ?`,'Remplacer').then(ok=>{if(ok){db=migrate(d);save();go('home');toast('Données restaurées')}})});el.value=''};
+  ask(`Remplacer les données de cet appareil par cette sauvegarde (${(d.sessions||[]).length} séances) ?`,'Remplacer').then(ok=>{if(ok){db=migrate(d);db.settings.lastBackup=Date.now();save();go('home');toast('Données restaurées')}})});el.value=''};
 A.exportCsv=()=>{
   const rows=[['Date','Heure','Séance','Programme','Bloc','Type','Tour','Exercice','Groupe','Matériel','Reps','Charge','Unité','Élastique','Reps rest-pause','Kg équivalent (élastiques)','Volume (charge × reps)']];
   db.sessions.forEach(s=>s.blocks.forEach((b,bi)=>b.log.forEach((r,ri)=>r.forEach(st=>{if(!st)return;const ex=exById(st.exId)||{};const kg=effKg(st);const rpT=(st.rp||[]).reduce((a,c)=>a+c,0);
@@ -701,7 +706,9 @@ document.addEventListener('input',e=>{const el=e.target;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 function applyLayout(){const L=db.settings.layout||'auto';const auto=matchMedia('(min-width:1000px) and (hover:hover) and (pointer:fine)').matches;const w=L==='wide'||(L==='auto'&&auto);document.body.classList.toggle('wide',w);document.body.classList.toggle('xwide',w&&innerWidth>=1500)}
 addEventListener('resize',applyLayout);applyLayout();
+const prevV=db.settings.appVersion;db.settings.appVersion=APP_VERSION;save();
 S.view=db.active?'workout':'home';if(db.active)wake(true);render();
+if(prevV&&prevV!==APP_VERSION)setTimeout(()=>toast(`✓ Mise à jour installée : v${APP_VERSION}`),400);
 </script>
 </body>
 </html>
