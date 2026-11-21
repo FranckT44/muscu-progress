@@ -128,8 +128,10 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='1.8.1',APP_DATE='21/11/2026';
+const APP_VERSION='1.8.3',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['1.8.3','21/11/2026',['Historique : les pompes de WO 1 · Série 4 sont rattachées à « Pompes pieds surélevés » (pieds à hauteur de banc), module WO 1 · Série 4 mis à jour']],
+ ['1.8.2','21/11/2026',['Nouveaux exercices : Pompes pieds surélevés (Pectoraux › Haut) et Pompes inclinées mains surélevées (Pectoraux › Bas), au poids du corps']],
  ['1.8.1','21/11/2026',['Comparaisons par défaut sur le volume total, tous modes confondus (une séance en 8 se compare à une séance en 15)','Bilan de séance : bascule « Volume total · tous modes » / « Même mode »','Progrès → Exercices : filtre par mode (8-8, 15-15…) sur les chiffres, courbes et tableau ; KPI « Volume depuis le début »']],
  ['1.8.0','21/11/2026',['Modes de répétitions au démarrage : Normal, Force · 8, Hypertrophie · 12, Endurance · 15 (modifiables, ajoutables dans Réglages)','Choix séries dégressives ou égales ; objectifs et charges recalculés depuis le 1RM estimé (élastiques : combinaison du kit la plus proche)','Case « Repos automatique selon le mode »','Programme : rotation automatique des modes en option (ex. 12 → 8 → 15), mode suivant affiché sur l’accueil','Comparaisons de séances faites mode contre mode']],
  ['1.7.1','21/11/2026',['Le lieu « Déplacement » s’appelle désormais « En déplacement » (modules de déplacement renommés aussi)']],
@@ -209,6 +211,8 @@ function migrate(d){d.settings={...clone(DEF_SETTINGS),...(d.settings||{})};if(d
   if(typeof SEED_DATA!=='undefined')SEED_DATA.exercises.forEach(se=>{const e=d.exercises.find(x=>x.id===se.id);if(e&&e.unit==null)e.unit=se.unit||''});
   d.exercises.forEach(e=>{e.unit=e.unit||'';e.sub=e.sub||'';e.type=e.type||'';e.sec=e.sec||[]});
   if(!d.enDeplV){d.settings.locations.forEach(l=>{if(l.id==='travel'&&l.name==='Déplacement')l.name='En déplacement'});d.modules.forEach(m=>{if(/^mT/.test(m.id)&&m.name.startsWith('Déplacement ·'))m.name='En '+m.name.charAt(0).toLowerCase()+m.name.slice(1)});d.enDeplV=true}
+  if(!d.addedP1){[{"id": "p01", "name": "Pompes pieds surélevés", "muscle": "Pectoraux", "sub": "Haut", "type": "poly", "sec": ["Épaules|Antérieur", "Triceps"], "equip": "pdc", "mode": "reps", "uni": false, "notes": "Pieds sur une chaise / un banc : plus les pieds sont hauts, plus le haut des pecs travaille. Coef : 1 = pieds à hauteur de chaise, 1,15 = gilet ou pieds plus hauts", "move": "Développé incliné", "anchor": "", "unit": ""}, {"id": "p02", "name": "Pompes inclinées (mains surélevées)", "muscle": "Pectoraux", "sub": "Bas", "type": "poly", "sec": ["Triceps", "Épaules|Antérieur"], "equip": "pdc", "mode": "reps", "uni": false, "notes": "Mains sur un banc / une chaise / le bord du lit : cible le bas des pecs. Coef : 0,75 = mains hautes (plus facile), 0,85 = mains plus basses", "move": "Développé décliné", "anchor": "", "unit": ""}].forEach(e=>{if(!d.exercises.some(x=>x.id===e.id))d.exercises.push(e)});d.addedP1=true}
+  if(!d.pompesFix){const ok=d.exercises.some(x=>x.id==='p01');if(ok){d.sessions.forEach(s=>s.blocks.forEach(b=>{b.items.forEach(it=>{if(it.exId==='x13')it.exId='p01';if(it.orig==='x13')it.orig='p01'});b.log.forEach(r=>r.forEach(st=>{if(st&&st.exId==='x13')st.exId='p01'}))}));d.modules.forEach(m=>{if(m.id==='m14')m.blocks.forEach(b=>b.items.forEach(it=>{if(it.exId==='x13')it.exId='p01'}))});if(d.active)d.active.blocks.forEach(b=>b.items.forEach(it=>{if(it.exId==='x13'&&!b.log.length)it.exId='p01'}));d.pompesFix=true}}
   d.travelSeeded=true;d.exercises.forEach(e=>{e.move=e.move||'';e.anchor=e.anchor||''});d.exercises=d.exercises||[];d.modules=d.modules||[];d.programs=d.programs||[];d.sessions=d.sessions||[];d.active=d.active||null;d.sessions.sort((a,b)=>a.start-b.start);return d}
 function load(){try{const s=localStorage.getItem(DB_KEY);if(s)return migrate(JSON.parse(s))}catch(e){}return seed()}
 let db=load();
