@@ -129,8 +129,10 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.4.0',APP_DATE='21/11/2026';
+const APP_VERSION='2.6.0',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.6.0','21/11/2026',['Séance improvisée : démarre une séance vide et choisis les exercices dans la liste (recherche, cases à cocher, ordre conservé), en exercices séparés ou enchaînés (superset / triset / circuit)','Aussi pour une séance déjà faite : « ✍️ Séance improvisée » dans « 📝 Saisir une séance déjà faite »','Pendant toute séance : « ＋ Ajouter des exercices » utilise ce nouveau sélecteur ; « ＋ Nouvel exercice » si l’exercice n’existe pas encore','Nom de la séance improvisée modifiable à l’enregistrement']],
+ ['2.5.0','21/11/2026',['Saisie d’une séance déjà faite sans l’appli : bouton « 📝 Saisir une séance déjà faite » (accueil, carte Séance libre) ou case « 📝 Séance déjà faite » au démarrage de n’importe quelle séance','Date, heure de début et durée au choix (modifiables pendant la saisie) ; pas de chrono ni de repos ; la séance est rangée à sa date dans l’historique et compte dans les progrès']],
  ['2.4.0','21/11/2026',['Sauvegarde automatique à la fin de chaque séance (activée par défaut) : sur PC, écriture directe dans un dossier choisi une fois (ex. OneDrive) ; sur téléphone, le menu de partage s’ouvre tout seul','Points de restauration : 10 copies internes automatiques (fin de séance, avant restauration/fusion, nouvelle version) avec retour en un clic dans Réglages','Bilan de séance : « ☁ Sauvegarder maintenant » ou « ✓ Tout est sauvegardé »','« ☁ Envoyer la sauvegarde » écrit dans le dossier choisi quand il y en a un']],
  ['2.3.0','21/11/2026',['Sauvegarde : le rappel tient compte de toutes les modifications (séances, vidéos, exercices, modules, programmes) et les détaille ; Réglages indique « ✓ Tout est sauvegardé » ou ce qui ne l’est pas','Restaurer : choix entre 🔀 Fusionner (ajoute ce qui manque, n’efface rien, réunit les vidéos) et ♻ Remplacer (avec alerte si des séances seraient perdues)']],
  ['2.2.1','21/11/2026',['Mes vidéos : bouton ✏️ pour modifier le nom et le lien d’une vidéo enregistrée, avec « ↻ Titre YouTube » pour récupérer le titre automatiquement']],
@@ -337,16 +339,16 @@ function playSnd(k,set=SOUNDS){if(!db.settings.sound)return;unlockAudio();(set[k
 function beep(){}
 let WL=null;
 async function wake(on){try{if(on&&db.settings.wake&&'wakeLock' in navigator){WL=await navigator.wakeLock.request('screen')}else if(!on&&WL){await WL.release();WL=null}}catch(e){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&db.active)wake(true)});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&db.active&&!db.active.past)wake(true)});
 
 /* ================= Chrono ================= */
 const T={running:false,paused:false,end:0,dur:0,rem:0,label:'',beeped:{},hideAt:0};
-function startTimer(sec,label='Repos'){sec=+sec;if(!(sec>0))return;unlockAudio();Object.assign(T,{dur:sec,end:Date.now()+sec*1000,running:true,paused:false,label,beeped:{},hideAt:0});const tb=$('#tbar');tb.hidden=false;tb.classList.remove('end');paintTimer()}
+function startTimer(sec,label='Repos'){sec=+sec;if(!(sec>0))return;if(db.active&&db.active.past&&label!=='manuel')return;unlockAudio();Object.assign(T,{dur:sec,end:Date.now()+sec*1000,running:true,paused:false,label,beeped:{},hideAt:0});const tb=$('#tbar');tb.hidden=false;tb.classList.remove('end');paintTimer()}
 function stopTimer(){T.running=false;T.hideAt=0;$('#tbar').hidden=true}
 const tRem=()=>T.paused?T.rem:(T.end-Date.now())/1000;
 function paintTimer(){if($('#tbar').hidden)return;const r=T.running?Math.max(0,tRem()):0;$('#ttime').textContent=T.running?fmtTime(Math.ceil(r)):'GO !';$('#tlabel').textContent=T.running?T.label+(T.paused?' (pause)':''):'Repos terminé 💪';$('#tprog').style.width=(T.running?(1-r/T.dur)*100:100)+'%';$('#tpause').textContent=T.paused?'▶':'⏸'}
 setInterval(()=>{
-  const el=$('#elapsed');if(el&&db.active)el.textContent=fmtTime((Date.now()-db.active.start)/1000);
+  const el=$('#elapsed');if(el&&db.active&&!db.active.past)el.textContent=fmtTime((Date.now()-db.active.start)/1000);
   if(!T.running&&T.hideAt&&Date.now()>T.hideAt){$('#tbar').hidden=true;T.hideAt=0}
   if(!T.running||T.paused)return;
   const r=tRem(),c=Math.ceil(r);
@@ -355,12 +357,12 @@ setInterval(()=>{
   paintTimer();
 },200);
 A.timerPanel=()=>modal(`<h3>⏱ Chrono de repos</h3><div class="grid">${db.settings.timers.map(s=>`<button data-a="tStart" data-v="${s}">${fmtDur(s)}</button>`).join('')}</div><div class="row" style="margin-top:12px"><input type="number" id="tCust" inputmode="numeric" placeholder="Autre durée (secondes)"><button class="btn" data-a="tCustom">Go</button></div><button class="btn ghost wide" data-a="closeModal">Fermer</button>`);
-A.tStart=el=>{closeModal();startTimer(+el.dataset.v)};
-A.tCustom=()=>{const v=+$('#tCust').value;closeModal();startTimer(v)};
+A.tStart=el=>{closeModal();startTimer(+el.dataset.v,'manuel')};
+A.tCustom=()=>{const v=+$('#tCust').value;closeModal();startTimer(v,'manuel')};
 A.tAdd=el=>{const v=+el.dataset.v;if(!T.running){if(v>0)startTimer(v);return}if(T.paused)T.rem=Math.max(1,T.rem+v);else T.end=Math.max(Date.now()+1000,T.end+v*1000);T.dur=Math.max(T.dur+v,tRem(),1);T.beeped={};paintTimer()};
 A.tPause=()=>{if(!T.running)return;if(T.paused){T.end=Date.now()+T.rem*1000;T.paused=false}else{T.rem=tRem();T.paused=true}paintTimer()};
 A.tStop=()=>stopTimer();
-A.closeModal=()=>closeModal();
+A.closeModal=()=>{S.pastPre=false;closeModal()};
 
 /* ================= Navigation ================= */
 A.nav=el=>go(el.dataset.v);
@@ -369,7 +371,7 @@ A.go=el=>go(el.dataset.v);
 /* ================= Accueil ================= */
 V.home=()=>{
   let h='';const a=db.active;
-  if(a)h+=`<div class="card hl"><div class="row sb"><div><div class="k">Séance en cours</div><b>${esc(a.name)}</b><div class="xs muted">Commencée à ${new Date(a.start).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div></div><button class="btn" data-a="go" data-v="workout">Reprendre</button></div></div>`;
+  if(a)h+=`<div class="card hl"><div class="row sb"><div><div class="k">${a.past?'📝 Saisie en cours':'Séance en cours'}</div><b>${esc(a.name)}</b><div class="xs muted">${a.past?'Séance du '+esc(fmtDateLong(a.start)):'Commencée à '+new Date(a.start).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div></div><button class="btn" data-a="go" data-v="workout">Reprendre</button></div></div>`;
   const loc=curLoc();
   h+=`<div class="card"><div class="k">Où t’entraînes-tu ?</div><div class="seg">${db.settings.locations.map(l=>`<button class="${l.id===loc.id?'on':''}" data-a="setLoc" data-v="${l.id}">${esc(l.icon||'')} ${esc(l.name)}</button>`).join('')}</div><div class="row sb"><div class="xs muted">Matériel disponible aujourd’hui (touche pour activer / désactiver) :</div>${(()=>{const all=allEq().every(k=>loc.equip.includes(k))&&['haut','median','bas'].every(k=>(loc.anchors||[]).includes(k));return `<button class="btn ${all?'ghost':''} sm" data-a="togAll" style="white-space:nowrap">${all?'✕ Tout désactiver':'✓ Tout activer'}</button>`})()}</div><div class="chips">${Object.keys(EQUIP).filter(k=>k!=='pdc').map(k=>`<button class="chip ${loc.equip.includes(k)?'on':''}" data-a="togEq" data-v="${k}">${EQUIP[k]}</button>`).join('')}${['haut','median','bas'].map(k=>`<button class="chip ${(loc.anchors||[]).includes(k)?'on':''}" data-a="togAn" data-v="${k}">${ANCH[k]}</button>`).join('')}</div></div>`;
   const bd=backupDue();if(bd)h+=`<div class="card" style="border-color:var(--ac2)"><div class="row sb"><div class="sm">💾 Non sauvegardé : <b>${unsavedTxt(bd)}</b>${bd.days!=null?' · dernière sauvegarde il y a '+bd.days+' j':' · jamais sauvegardé'}</div><button class="btn sm" data-a="shareBackup">Sauvegarder</button></div></div>`;
@@ -385,7 +387,7 @@ V.home=()=>{
     h+='</div>'});
   const fm=db.modules.map(m=>({m,a:adaptCount([m.id])})).sort((x,y)=>(x.a.miss>0)-(y.a.miss>0));
   if(hF('home|lib'))h+=`<div class="card"><div class="fh" data-a="fold" data-v="home|lib"><div class="k">Séance libre <span class="muted" style="text-transform:none;letter-spacing:0">· ${db.modules.length} modules</span></div><span class="fa">▸</span></div></div>`;
-  else h+=`<div class="card"><div class="fh" data-a="fold" data-v="home|lib"><div class="k">Séance libre</div><span class="fa">▾</span></div><button class="btn ghost wide" data-a="compose">🧩 Composer une séance (choisir plusieurs modules)</button><div class="chips">${fm.map(({m,a})=>`<button class="chip" data-a="startMod" data-m="${m.id}" ${a.miss?'style="opacity:.55"':''}>▶ ${esc(m.name)}${a.miss?' ⚠':a.sub?' ↺':''}</button>`).join('')||'<span class="muted sm">Crée d’abord un module.</span>'}</div><div class="xs muted" style="margin-top:6px">↺ = exercices adaptés au matériel · ⚠ = certains exercices sans équivalent ici</div></div>`;
+  else h+=`<div class="card"><div class="fh" data-a="fold" data-v="home|lib"><div class="k">Séance libre</div><span class="fa">▾</span></div><button class="btn ghost wide" data-a="compose">🧩 Composer une séance (choisir plusieurs modules)</button><div class="chips">${fm.map(({m,a})=>`<button class="chip" data-a="startMod" data-m="${m.id}" ${a.miss?'style="opacity:.55"':''}>▶ ${esc(m.name)}${a.miss?' ⚠':a.sub?' ↺':''}</button>`).join('')||'<span class="muted sm">Crée d’abord un module.</span>'}</div><div class="xs muted" style="margin-top:6px">↺ = exercices adaptés au matériel · ⚠ = certains exercices sans équivalent ici</div><button class="btn ghost wide" data-a="freeStart" style="margin-top:10px">✍️ Séance improvisée (je choisis les exercices)</button><button class="btn ghost wide" data-a="pastStart" style="margin-top:6px">📝 Saisir une séance déjà faite (sans l’appli)</button></div>`;
   const last=db.sessions[db.sessions.length-1];
   if(last){const t=sessionTotals(last),pv=prevComparable(last),pt=pv&&sessionTotals(pv);
     h+=`<div class="card tap" data-a="openSession" data-id="${last.id}"><div class="k">Dernière séance · ${fmtDate(last.start)}</div><b>${esc(last.name)}</b><div class="kpis">${kpi('Volume',fmtKg(t.volume),pt&&delta(t.volume,pt.volume))}${kpi('Séries',t.sets,pt&&delta(t.sets,pt.sets))}${kpi('Durée',fmtMin(last.end-last.start))}</div><div class="xs muted">Voir le bilan →</div></div>`}
@@ -428,17 +430,17 @@ function optsHtml(){const o=S.pendingStart,O=S.opt,md=modeById(O.mode);const p=o
   <div class="fld"><span>Séries</span><div class="seg"><button class="${O.struct==='deg'?'on':''}" data-a="optStruct" data-v="deg">Dégressives</button><button class="${O.struct==='eq'?'on':''}" data-a="optStruct" data-v="eq">Égales</button></div></div>
   <label class="chk"><input type="checkbox" id="optRest" ${O.rest?'checked':''} data-ch="optRestCh"> Repos automatique selon le mode${+md.rest?` (${fmtDur(md.rest)} entre tours)`:' (le mode Normal garde les repos du programme)'}</label>
   <div class="note xs">${it?`Exemple, ${esc(exById(it.exId)?.name||'')} : objectifs <b>${esc(String(prevT).replace(/\//g,' / '))}</b>`:''}${+md.reps||O.struct==='eq'?' · charges calculées depuis ton 1RM estimé (à valider dès la 1ʳᵉ série)':' · charges reprises de la dernière séance'}</div>
-  <button class="btn big wide" data-a="startGo">▶ Démarrer</button><button class="btn ghost wide" data-a="preview">👁 Aperçu de la séance (exercices, objectifs, charges)</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`}
+  ${pastHtml()}<button class="btn big wide" data-a="startGo">${O.past?'📝 Saisir les séries':'▶ Démarrer'}</button><button class="btn ghost wide" data-a="preview">👁 Aperçu de la séance (exercices, objectifs, charges)</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`}
 A.optMode=el=>{S.opt.mode=el.dataset.v;modal(optsHtml())};
 A.optStruct=el=>{S.opt.struct=el.dataset.v;modal(optsHtml())};
 A.optRestCh=el=>{S.opt.rest=el.checked};
-A.startGo=()=>{const o=S.pendingStart;const O=S.opt;db.settings.lastStruct=O.struct;db.settings.restAuto=O.rest;if(!(o.programId&&nextMode(progById(o.programId))))db.settings.lastMode=O.mode;closeModal();startWorkout({...o,opts:{...O}})};
+A.startGo=()=>{const o=S.pendingStart;const O=S.opt;if(O.past&&!pastOk(O))return;db.settings.lastStruct=O.struct;db.settings.restAuto=O.rest;if(!(o.programId&&nextMode(progById(o.programId))))db.settings.lastMode=O.mode;closeModal();startWorkout({...o,opts:{...O}})};
 function buildActive(o){const loc=curLoc();let nS=0,nM=0;const blocks=[];
   o.moduleIds.forEach(mid=>{const m=db.modules.find(x=>x.id===mid);if(m)m.blocks.forEach(b=>blocks.push({type:b.type,sets:+b.sets||1,rest:+b.rest||0,restEnd:+b.restEnd||0,module:m.name,log:[],
     items:clone(b.items).map(it=>{const s=subFor(it.exId,loc);if(s&&s!==it.exId){nS++;return {...it,orig:it.exId,exId:s,load:'',band:''}}if(!s){nM++;return {...it,missing:true}}return it})}))});
-  if(!blocks.length)return null;
+  if(!blocks.length&&!o.free)return null;
   const md=modeById(o.opts.mode),Rm=+md.reps||0;blocks.forEach(b=>{if(o.opts.rest&&Rm&&+md.rest)b.rest=+md.rest;b.items.forEach(it=>{it.reps=adaptTarget(it.reps,b.sets,Rm,o.opts.struct)})});
-  return {nS,nM,loc,act:{id:uid(),start:Date.now(),loc:loc.id,resume:resumeFor(),mode:{id:md.id,name:md.name,reps:Rm,struct:o.opts.struct},name:o.name+(loc.id!==db.settings.locations[0].id?' · '+loc.name:''),programId:o.programId||null,templateId:o.templateId||null,blocks,pendingRP:null}}}
+  return {nS,nM,loc,act:{id:uid(),start:Date.now(),loc:loc.id,resume:resumeFor(),mode:{id:md.id,name:md.name,reps:Rm,struct:o.opts.struct},name:o.name+(loc.id!==db.settings.locations[0].id?' · '+loc.name:''),programId:o.programId||null,templateId:o.templateId||null,free:o.free?1:undefined,blocks,pendingRP:null}}}
 function previewHtml(){const o=S.pendingStart,O=S.opt;const B=buildActive({...o,opts:{...O}});if(!B)return '<p>Séance vide.</p><button class="btn ghost wide" data-a="closeModal">Fermer</button>';
   const keep=db.active;db.active=B.act;let h='';
   try{const a=B.act;h+=`<h3>👁 Aperçu · ${esc(a.name)}</h3><div class="xs muted">🎯 ${esc(a.mode.name)} · séries ${a.mode.struct==='eq'?'égales':'dégressives'}${a.resume?` · 🔄 reprise −${a.resume.pct} %`:''} · ${locIcon(a.loc)} ${esc(B.loc.name)}${B.nS?` · ${B.nS} exercice(s) remplacé(s)`:''}</div>`;
@@ -449,12 +451,12 @@ function previewHtml(){const o=S.pendingStart,O=S.opt;const B=buildActive({...o,
   return h+`<p class="xs muted" style="margin-top:10px">Charges = propositions (dernière séance ou 1RM estimé selon le mode) : tu pourras les corriger à chaque série.</p><button class="btn big wide" data-a="startGo">▶ Démarrer</button><button class="btn ghost wide" data-a="optBack">← Modifier les options</button>`}
 A.preview=()=>modal(previewHtml());
 A.optBack=()=>modal(optsHtml());
-A.previewTpl=el=>{const p=progById(el.dataset.p);const t=p&&p.templates.find(x=>x.id===el.dataset.t);if(!t)return;const nm=nextMode(p);S.pendingStart={name:t.name,programId:p.id,templateId:t.id,moduleIds:t.moduleIds};S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false};if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(previewHtml())};
+A.previewTpl=el=>{const p=progById(el.dataset.p);const t=p&&p.templates.find(x=>x.id===el.dataset.t);if(!t)return;const nm=nextMode(p);S.pendingStart={name:t.name,programId:p.id,templateId:t.id,moduleIds:t.moduleIds};S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false,...pastInit()};S.pastPre=false;if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(previewHtml())};
 async function startWorkout(o){
-  if(!o.opts){const p=o.programId&&progById(o.programId),nm=nextMode(p);S.pendingStart=o;S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false};if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(optsHtml());return}
+  if(!o.opts){const p=o.programId&&progById(o.programId),nm=nextMode(p);S.pendingStart=o;S.opt={mode:nm?nm.id:(db.settings.lastMode||'normal'),struct:db.settings.lastStruct||'deg',rest:db.settings.restAuto!==false,...pastInit()};S.pastPre=false;if(!db.settings.repModes.some(m=>m.id===S.opt.mode))S.opt.mode='normal';modal(optsHtml());return}
   if(db.active&&!(await ask('Une séance est déjà en cours. La remplacer ? (elle sera perdue)','Remplacer')))return;
   const B=buildActive(o);if(!B)return toast('Cette séance ne contient aucun module');const {nS,nM,loc}=B;
-  S.open={};db.active=B.act;save();wake(true);go('workout');if(nS||nM)setTimeout(()=>toast(`${loc.icon||''} ${nS} exercice(s) adapté(s) au matériel${nM?` · ${nM} sans équivalent (⇄)`:''}`),300);
+  S.open={};db.active=B.act;if(o.opts&&o.opts.past){const P=o.opts;db.active.start=pastStart(P);db.active.past={dur:+P.pDur||60}}save();if(!db.active.past)wake(true);go('workout');if(o.free&&!db.active.blocks.length)setTimeout(()=>A.addExToWorkout(),50);if(nS||nM)setTimeout(()=>toast(`${loc.icon||''} ${nS} exercice(s) adapté(s) au matériel${nM?` · ${nM} sans équivalent (⇄)`:''}`),300);
 }
 A.swap=el=>{const bi=+el.dataset.bi,ii=+el.dataset.ii,it=db.active.blocks[bi].items[ii];const ex=exById(it.orig||it.exId)||{};const loc=locById(db.active.loc);
   const same=db.exercises.filter(e=>e.move&&e.move===ex.move&&e.id!==it.exId);const okS=same.filter(e=>feasible(e,loc)),noS=same.filter(e=>!feasible(e,loc));
@@ -502,18 +504,19 @@ function blockCard(b,bi){
     const ri=done;h+=`<div class="inp"><div class="k">${single?'Série':'Tour'} ${ri+1} / ${b.sets}</div>`;
     b.items.forEach((it,ii)=>{const ex=exById(it.exId)||{};const pf=prefill(b,ii,ri);
       h+=`${single?'':`<div class="xs muted" style="margin-top:6px">${L(ii)}${esc(ex.name)}</div>`}<div class="setrow">${single?'':`<div class="sn">${String.fromCharCode(65+ii)}</div>`}<label class="fld"><span>${ex.mode==='time'?'Secondes':'Reps'} <b>(obj. ${esc(tgtFor(it,ri)||'–')})</b></span><input type="number" inputmode="numeric" id="r-${bi}-${ii}" value="${esc(pf.reps)}" placeholder="vide = sauté"></label>${loadField(ex,`l-${bi}-${ii}`,pf)}<label class="rpt"><input type="checkbox" id="rpc-${bi}-${ii}" ${isRp(it,ri,b)&&!a.resume?'checked':''}><span>Rest-pause</span></label></div>${usesBands(ex)&&ex.mode!=='time'?`<div class="bchips">${db.settings.bands.map(x=>`<button class="bc" data-a="bandAdd" data-t="l-${bi}-${ii}" data-v="${esc(x.name)}">+${esc(x.name)}</button>`).join('')}<button class="bc" data-a="bandClr" data-t="l-${bi}-${ii}">⌫</button></div>`:''}`});
-    h+=`<button class="btn big wide" data-a="validate" data-bi="${bi}">✓ Valider ${single?'la série':'le tour'} + lancer ${ri>=b.sets-1&&b.restEnd?'la pause de fin':'le repos'}</button></div>`;
+    h+=`<button class="btn big wide" data-a="validate" data-bi="${bi}">✓ Valider ${single?'la série':'le tour'}${a.past?'':' + lancer '+(ri>=b.sets-1&&b.restEnd?'la pause de fin':'le repos')}</button></div>`;
   }else h+=`<div class="row sb" style="margin-top:6px"><span class="ok">✓ Bloc terminé</span><button class="btn ghost sm" data-a="addRound" data-bi="${bi}">+1 ${single?'série':'tour'}</button></div>`;
   return h+'</div>';
 }
 V.workout=()=>{
   const a=db.active;if(!a){S.view='home';return V.home()}
-  let h=`<div class="card hl"><div class="row sb"><div><div class="k">Séance en cours</div><h2>${esc(a.name)}</h2><div class="sm muted">⏳ <span id="elapsed">${fmtTime((Date.now()-a.start)/1000)}</span></div></div><div class="col"><button class="btn" data-a="finish">Terminer ✓</button><button class="btn ghost sm" data-a="abandon">Abandonner</button></div></div></div>`;
+  let h=`<div class="card hl"><div class="row sb"><div><div class="k">${a.past?'📝 Séance déjà faite — saisie':'Séance en cours'}</div><h2>${esc(a.name)}</h2><div class="sm muted">${a.past?`📅 ${esc(fmtDateLong(a.start))} · durée ${fmtDur(a.past.dur*60)} <button class="link xs" data-a="pastEdit">modifier</button>`:`⏳ <span id="elapsed">${fmtTime((Date.now()-a.start)/1000)}</span>`}</div></div><div class="col"><button class="btn" data-a="finish">${a.past?'Enregistrer ✓':'Terminer ✓'}</button><button class="btn ghost sm" data-a="abandon">Abandonner</button></div></div></div>`;
   if(a.mode&&(a.mode.reps||a.mode.struct==='eq'))h+=`<div class="card" style="border-color:var(--ac2);padding:10px 14px"><span class="sm">🎯 Mode <b>${esc(a.mode.name)}</b> · séries ${a.mode.struct==='eq'?'égales':'dégressives'} · charges calculées depuis le 1RM estimé</span></div>`;
   if(a.resume){const R=a.resume;h+=`<div class="card" style="border-color:var(--ok)"><div class="row sb"><b>🔄 Reprise après ${gapTxt(R.gap)} sans séance</b><span class="tag on">séance ${R.lvl}/${R.n}</span></div><div class="sm" style="margin-top:6px">Charges pré-remplies à <b>−${R.pct} %</b> par rapport à avant la pause${R.lvl>1?' (2ᵉ séance : demi-réduction)':''}. Rest-pause décoché par défaut : arrête plutôt 1 ou 2 reps avant l’échec. Les élastiques ne sont pas réduits automatiquement : prends un cran en dessous si besoin.</div><div class="xs muted" style="margin-top:4px">Cette séance sera marquée « reprise » et ne servira pas de référence de comparaison pour les séances normales.</div><button class="btn ghost sm" data-a="resumeOff" style="margin-top:8px">Désactiver le mode reprise pour cette séance</button></div>`}
   const cur=a.blocks.findIndex(x=>x.log.length<x.sets),pr=a.pendingRP?a.pendingRP.bi:-1;let main='',side='';
   a.blocks.forEach((b,bi)=>{const c=`<div style="order:${bi+1}">${blockCard(b,bi)}</div>`;if(bi===cur||bi===pr||(S.open||{})[bi])main+=c;else side+=c});
-  side+=`<div style="order:999"><button class="btn ghost wide" data-a="addExToWorkout">+ Ajouter un exercice à cette séance</button></div>`;
+  if(!a.blocks.length)main+=`<div class="card" style="order:1;text-align:center;padding:24px 14px"><p class="sm">Aucun exercice pour l’instant.</p><button class="btn big wide" data-a="addExToWorkout">＋ Ajouter des exercices</button></div>`;
+  else side+=`<div style="order:999"><button class="btn ghost wide" data-a="addExToWorkout">＋ Ajouter des exercices à cette séance</button></div>`;
   return `<div class="wgrid"><div class="wmain"><div style="order:0">${h}</div>${main}</div><div class="wside">${side}</div></div>`;
 };
 A.resumeSkip=()=>{const p=db.sessions[db.sessions.length-1];if(!p)return;db.settings.resumeSkip=p.id;save();render();toast('Mode reprise ignoré : charges normales à la prochaine séance')};
@@ -537,17 +540,17 @@ A.rpSkip=el=>{const b=db.active.blocks[+el.dataset.bi];db.active.pendingRP=null;
 A.undoRound=el=>{const bi=+el.dataset.bi;ask('Annuler le dernier enregistrement de ce bloc ?','Annuler la saisie').then(ok=>{if(!ok)return;db.active.blocks[bi].log.pop();if(db.active.pendingRP&&db.active.pendingRP.bi===bi)db.active.pendingRP=null;save();render()})};
 A.toggleBlk=el=>{S.open=S.open||{};S.open[+el.dataset.bi]=!S.open[+el.dataset.bi];render()};
 A.addRound=el=>{db.active.blocks[+el.dataset.bi].sets++;save();render()};
-A.addExToWorkout=()=>modal(`<h3>Ajouter un exercice</h3><label class="fld"><span>Exercice</span><select id="aEx">${exOptions()}</select></label><div class="row"><label class="fld"><span>Séries</span><input id="aSets" type="number" value="3"></label><label class="fld"><span>Repos</span><select id="aRest">${restOptions(db.settings.defaultRest)}</select></label></div><div class="row"><button class="btn" data-a="addExOk">Ajouter</button><button class="btn ghost" data-a="closeModal">Annuler</button></div>`);
+/* addExToWorkout : voir sélecteur d'exercices */
 A.addExOk=()=>{const exId=$('#aEx').value;const ex=exById(exId)||{};db.active.blocks.push({type:'single',sets:+$('#aSets').value||3,rest:+$('#aRest').value,module:'Ajout',items:[{exId,reps:'',load:'',band:ex.equip==='elastique'?(db.settings.bands[0]||{}).name:'',rp:false,rpSec:db.settings.rpSec}],log:[]});save();closeModal();render();window.scrollTo(0,document.body.scrollHeight)};
 A.abandon=()=>ask('Abandonner la séance en cours ? Rien ne sera enregistré.','Abandonner').then(ok=>{if(ok){db.active=null;save();stopTimer();wake(false);go('home')}});
 A.finish=()=>{
   const a=db.active;const n=a.blocks.reduce((s,b)=>s+b.log.length,0);
   if(!n){A.abandon();return}
-  modal(`<h3>Terminer la séance</h3><label class="fld"><span>Ressenti global (1 = facile · 10 = épuisant)</span><select id="fRpe">${[1,2,3,4,5,6,7,8,9,10].map(i=>`<option ${i===7?'selected':''}>${i}</option>`).join('')}</select></label><label class="fld"><span>Notes</span><textarea id="fNotes" rows="3" placeholder="Sensations, douleurs, réglages machine…"></textarea></label><div class="row"><button class="btn ghost" data-a="closeModal">Continuer la séance</button><button class="btn" data-a="finishOk">Enregistrer</button></div>`);
+  modal(`<h3>${a.past?'Enregistrer la séance du '+esc(fmtDate(a.start)):'Terminer la séance'}</h3>${a.free?`<label class="fld"><span>Nom de la séance</span><input id="fName" value="${esc(a.name)}"></label>`:''}<label class="fld"><span>Ressenti global (1 = facile · 10 = épuisant)</span><select id="fRpe">${[1,2,3,4,5,6,7,8,9,10].map(i=>`<option ${i===7?'selected':''}>${i}</option>`).join('')}</select></label><label class="fld"><span>Notes</span><textarea id="fNotes" rows="3" placeholder="Sensations, douleurs, réglages machine…"></textarea></label><div class="row"><button class="btn ghost" data-a="closeModal">Continuer la séance</button><button class="btn" data-a="finishOk">Enregistrer</button></div>`);
 };
 A.finishOk=()=>{const a=db.active;if(a.pendingRP)a.pendingRP=null;
-  const s={id:a.id,start:a.start,end:Date.now(),loc:a.loc,resume:a.resume||null,mode:a.mode||null,name:a.name,programId:a.programId,templateId:a.templateId,rpe:+$('#fRpe').value,notes:$('#fNotes').value.trim(),blocks:a.blocks.filter(b=>b.log.length).map(b=>({type:b.type,sets:b.sets,rest:b.rest,restEnd:b.restEnd||0,module:b.module,items:b.items,log:b.log}))};
-  db.sessions.push(s);db.sessions.sort((x,y)=>x.start-y.start);db.active=null;save();closeModal();stopTimer();wake(false);S.viewSession=s.id;go('session');const nr=recordsOf(s).length;toast(nr?`🏆 ${nr} record(s) battu(s) !`:'Séance enregistrée 💪');snapAdd('Fin de séance « '+s.name+' »');if(db.settings.autoBk)autoBackup(nr)};
+  if(a.free&&$('#fName')&&$('#fName').value.trim())a.name=$('#fName').value.trim();const s={id:a.id,start:a.start,end:a.past?a.start+a.past.dur*60000:Date.now(),past:a.past?1:undefined,loc:a.loc,resume:a.resume||null,mode:a.mode||null,name:a.name,programId:a.programId,templateId:a.templateId,rpe:+$('#fRpe').value,notes:$('#fNotes').value.trim(),blocks:a.blocks.filter(b=>b.log.length).map(b=>({type:b.type,sets:b.sets,rest:b.rest,restEnd:b.restEnd||0,module:b.module,items:b.items,log:b.log}))};
+  db.sessions.push(s);db.sessions.sort((x,y)=>x.start-y.start);db.active=null;save();closeModal();stopTimer();wake(false);S.viewSession=s.id;go('session');const nr=recordsOf(s).length;toast(nr?`🏆 ${nr} record(s) battu(s) !`:a.past?'📝 Séance du '+fmtDate(s.start)+' enregistrée':'Séance enregistrée 💪');snapAdd('Fin de séance « '+s.name+' »');if(db.settings.autoBk)autoBackup(nr)};
 
 /* ================= Bilan d'une séance ================= */
 A.openSession=el=>{S.viewSession=el.dataset.id;go('session')};
@@ -769,7 +772,7 @@ A.eMusCh=el=>{$('#eSub').innerHTML=subOpts(el.value,'')};
 A.eSecAdd=el=>{if(el.value&&!S.eSec.includes(el.value))S.eSec.push(el.value);el.value='';$('#eSecList').innerHTML=secHtml()};
 A.eSecDel=el=>{S.eSec.splice(+el.dataset.i,1);$('#eSecList').innerHTML=secHtml()};
 A.saveEx=el=>{const name=$('#eName').value.trim();if(!name)return toast('Donne un nom');const o={name,muscle:$('#eMus').value,sub:$('#eSub').value,type:$('#eType').value,sec:clone(S.eSec||[]),unit:$('#eUnit').value,equip:$('#eEq').value,mode:$('#eMode').value,uni:$('#eUni').checked,move:$('#eMove').value.trim(),anchor:$('#eAnch').value,notes:$('#eNotes').value.trim()};
-  if(el.dataset.id)Object.assign(exById(el.dataset.id),o);else db.exercises.push({id:uid(),...o});save();closeModal();render();toast('Exercice enregistré')};
+  let nid=null;if(el.dataset.id)Object.assign(exById(el.dataset.id),o);else{nid=uid();db.exercises.push({id:nid,...o})}save();closeModal();render();toast('Exercice enregistré');if(S.afterExSave==='pick'&&S.pick&&db.active){S.afterExSave=null;if(nid)S.pick.sel.push(nid);S.pick.q='';A.addExToWorkout()}};
 A.delEx=el=>{const id=el.dataset.id;if(db.modules.some(m=>m.blocks.some(b=>b.items.some(i=>i.exId===id))))return toast('Exercice utilisé dans un module : retire-le d’abord');ask('Supprimer cet exercice ? (l’historique est conservé)','Supprimer').then(ok=>{if(ok){db.exercises=db.exercises.filter(e=>e.id!==id);save();render()}})};
 
 /* ================= Réglages & données ================= */
@@ -856,7 +859,7 @@ A.exportCsv=()=>{
 A.resetAll=()=>ask('Effacer toutes les données et revenir aux données de départ (programme et séances importés de ton Excel) ? Pense à exporter une sauvegarde avant.','Tout effacer').then(ok=>{if(ok){snapAdd('Avant retour aux données de départ');db=seed();save();go('home')}});
 
 /* ================= Évènements ================= */
-document.addEventListener('click',e=>{unlockAudio();const m=$('#modal');if(e.target===m){closeModal();return}if(e.target===$('#demo')){closeDemo();return}const el=e.target.closest('[data-a]');if(!el)return;const fn=A[el.dataset.a];if(fn){e.preventDefault();fn(el,e)}});
+document.addEventListener('click',e=>{unlockAudio();const m=$('#modal');if(e.target===m){S.pastPre=false;closeModal();return}if(e.target===$('#demo')){closeDemo();return}const el=e.target.closest('[data-a]');if(!el)return;const fn=A[el.dataset.a];if(fn){e.preventDefault();fn(el,e)}});
 document.addEventListener('change',e=>{const el=e.target;
   if(el.dataset.ch){A[el.dataset.ch]&&A[el.dataset.ch](el);return}
   if(el.dataset.f&&S.draft){setPath(S.draft,el.dataset.f,val(el));if('rr' in el.dataset)render()}});
@@ -870,6 +873,47 @@ document.addEventListener('input',e=>{const el=e.target;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 function applyLayout(){document.body.classList.toggle('fs-l',db.settings.fs==='l');document.body.classList.toggle('fs-xl',db.settings.fs==='xl');const L=db.settings.layout||'auto';const auto=matchMedia('(min-width:1000px) and (hover:hover) and (pointer:fine)').matches;const w=L==='wide'||(L==='auto'&&auto);document.body.classList.toggle('wide',w);document.body.classList.toggle('xwide',w&&innerWidth>=1500)}
 addEventListener('resize',applyLayout);applyLayout();
+/* ================= Séance déjà faite (saisie après coup) ================= */
+const pad2=x=>String(x).padStart(2,'0');
+function pastInit(){if(!S.pastPre)return {past:false};const d=new Date(Date.now()-3600e3);return {past:true,pDate:`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`,pTime:`${pad2(d.getHours())}:${pad2(Math.floor(d.getMinutes()/15)*15)}`,pDur:60}}
+function pastStart(O){const [y,m,d]=O.pDate.split('-').map(Number),[h,mi]=(O.pTime||'12:00').split(':').map(Number);return new Date(y,m-1,d,h,mi).getTime()}
+function pastOk(O){if(!O.pDate){toast('⚠ Indique la date de la séance');return false}const t=pastStart(O);if(!(t>0)){toast('⚠ Date invalide');return false}if(t>Date.now()){toast('⚠ La date est dans le futur');return false}if(!(+O.pDur>0)){toast('⚠ Indique la durée');return false}return true}
+function pastHtml(){const O=S.opt;if(!O.past)return `<label class="chk"><input type="checkbox" data-ch="pastCh"> 📝 Séance déjà faite (saisie après coup : date, heure, durée)</label>`;
+ return `<div class="card" style="border-color:var(--ac2);padding:10px 12px;margin:8px 0"><label class="chk" style="margin:0 0 6px"><input type="checkbox" checked data-ch="pastCh"> <b>📝 Séance déjà faite</b></label><div style="display:grid;grid-template-columns:1.3fr 1.1fr 70px;gap:6px"><label class="fld"><span>Date</span><input type="date" value="${O.pDate}" max="${today()}" data-ch="pastF" data-k="pDate"></label><label class="fld"><span>Début</span><input type="time" value="${O.pTime}" data-ch="pastF" data-k="pTime"></label><label class="fld"><span>Minutes</span><input type="number" min="1" value="${O.pDur}" data-ch="pastF" data-k="pDur"></label></div><div class="xs muted">Pas de chrono ni de repos : tu saisis tes séries tour par tour puis « Enregistrer ». La séance est rangée à sa date dans l’historique.</div></div>`}
+A.pastCh=el=>{S.opt.past=el.checked;if(el.checked&&!S.opt.pDate){S.pastPre=true;Object.assign(S.opt,pastInit());S.pastPre=false}modal(optsHtml())};
+A.pastF=el=>{S.opt[el.dataset.k]=el.value};
+A.pastStart=()=>{const P=db.programs.filter(p=>p.templates&&p.templates.length);
+ modal(`<h3>📝 Saisir une séance déjà faite</h3><p class="xs muted">Choisis la séance que tu as faite ; tu indiqueras ensuite la date, l’heure et la durée, puis tes séries.</p><button class="btn wide" data-a="pastFree" style="margin:6px 0">✍️ Séance improvisée : je choisis les exercices dans la liste</button>${P.map(p=>`<div class="k" style="margin-top:8px">${esc(p.name)}</div><div class="chips">${p.templates.map(t=>`<button class="chip" data-a="pastGo" data-k="tpl" data-p="${p.id}" data-t="${t.id}">${esc(t.name)}</button>`).join('')}</div>`).join('')}
+ <div class="k" style="margin-top:10px">Modules</div><div class="chips">${db.modules.map(m=>`<button class="chip" data-a="pastGo" data-k="mod" data-m="${m.id}">${esc(m.name)}</button>`).join('')}</div>
+ <button class="btn ghost wide" data-a="pastGo" data-k="cmp" style="margin-top:10px">🧩 Composer (plusieurs modules)</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`)};
+A.pastGo=el=>{S.pastPre=true;const k=el.dataset.k;if(k==='tpl')A.startTpl(el);else if(k==='mod')A.startMod(el);else A.compose()};
+A.pastEdit=()=>{const a=db.active;const d=new Date(a.start);modal(`<h3>📅 Date de la séance</h3><div style="display:grid;grid-template-columns:1.3fr 1.1fr 70px;gap:6px"><label class="fld"><span>Date</span><input type="date" id="peD" value="${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}" max="${today()}"></label><label class="fld"><span>Début</span><input type="time" id="peT" value="${pad2(d.getHours())}:${pad2(d.getMinutes())}"></label><label class="fld"><span>Minutes</span><input type="number" id="peM" min="1" value="${a.past.dur}"></label></div><div class="row"><button class="btn ghost" data-a="closeModal">Annuler</button><button class="btn" data-a="pastEditOk">OK</button></div>`)};
+A.pastEditOk=()=>{const O={pDate:$('#peD').value,pTime:$('#peT').value,pDur:$('#peM').value};if(!pastOk(O))return;db.active.start=pastStart(O);db.active.past.dur=+O.pDur;save();closeModal();render()};
+
+/* ================= Séance improvisée & sélecteur d'exercices ================= */
+A.pastFree=()=>{S.pastPre=true;A.freeStart()};
+A.freeStart=()=>{const past=!!S.pastPre;closeModal();S.pastPre=past;startWorkout({name:'Séance improvisée',moduleIds:[],free:true})};
+function pickHtml(){const P=S.pick,q=norm0(P.q),loc=curLoc();const g={};
+ db.exercises.filter(e=>!q||norm0(e.name).includes(q)||norm0(e.muscle).includes(q)||norm0(e.sub||'').includes(q)).forEach(e=>(g[e.muscle]=g[e.muscle]||[]).push(e));
+ const list=Object.keys(g).sort((a,b)=>a.localeCompare(b)).map(m=>`<div class="k" style="margin:10px 0 4px">${esc(m)}</div>${g[m].sort((a,b)=>a.name.localeCompare(b.name)).map(e=>{const i=P.sel.indexOf(e.id);return `<label class="li row" style="gap:10px;align-items:center;cursor:pointer;padding:7px 0"><input type="checkbox" data-ch="pickCh" value="${e.id}" ${i>=0?'checked':''} style="width:20px;height:20px;flex:none;margin:0"><span style="flex:1">${i>=0?`<b style="color:var(--ac)">${i+1}.</b> `:''}${esc(e.name)}<div class="xs muted">${esc(e.sub||'')}${e.sub?' · ':''}${esc(EQUIP[e.equip]||'')}${e.anchor&&e.anchor!=='pieds'&&ANCH[e.anchor]?' · '+esc(ANCH[e.anchor].replace('Ancrage ','')):''}</div></span></label>`}).join('')}`).join('')||'<p class="sm muted">Aucun exercice ne correspond. Crée-le avec « ＋ Nouvel exercice ».</p>';
+ return list}
+function pickFooter(){const P=S.pick,n=P.sel.length;return `<div class="row" style="gap:6px;margin-top:8px"><label class="fld"><span>Séries</span><input type="number" min="1" value="${P.sets}" data-ch="pickF" data-k="sets"></label><label class="fld"><span>Repos</span><select data-ch="pickF" data-k="rest">${restOptions(P.rest)}</select></label></div>
+ ${n>1?`<div class="seg" style="margin:6px 0"><button class="${P.circ?'':'on'}" data-a="pickCirc" data-v="0">Exercices séparés</button><button class="${P.circ?'on':''}" data-a="pickCirc" data-v="1">Enchaînés (${n===2?'superset':n===3?'triset':'circuit'})</button></div>`:''}
+ <button class="btn big wide" data-a="pickOk" ${n?'':'disabled'}>${n?`＋ Ajouter ${n} exercice${n>1?'s':''}`:'Coche un ou plusieurs exercices'}</button><div class="row" style="gap:6px;margin-top:6px"><button class="btn ghost" data-a="pickNew">＋ Nouvel exercice</button><button class="btn ghost" data-a="closeModal">Fermer</button></div>`}
+const norm0=x=>String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+A.addExToWorkout=()=>{S.pick=S.pick&&S.pick.keep?{...S.pick,keep:false}:{q:'',sel:[],sets:3,rest:db.settings.defaultRest||60,circ:false};
+ modal(`<h3>Ajouter des exercices</h3><input type="search" id="pickQ" placeholder="🔎 Rechercher (nom, muscle…)" value="${esc(S.pick.q)}" oninput="S.pick.q=this.value;$('#pickList').innerHTML=pickHtml()"><div id="pickList" style="max-height:42vh;overflow:auto;margin-top:6px">${pickHtml()}</div><div id="pickFoot">${pickFooter()}</div>`)};
+A.pickCh=el=>{const P=S.pick,id=el.value,i=P.sel.indexOf(id);if(el.checked&&i<0)P.sel.push(id);if(!el.checked&&i>=0)P.sel.splice(i,1);const sc=$('#pickList').scrollTop;$('#pickList').innerHTML=pickHtml();$('#pickList').scrollTop=sc;$('#pickFoot').innerHTML=pickFooter()};
+A.pickF=el=>{S.pick[el.dataset.k]=+el.value};
+A.pickCirc=el=>{S.pick.circ=el.dataset.v==='1';$('#pickFoot').innerHTML=pickFooter()};
+A.pickNew=()=>{S.pick.keep=true;S.afterExSave='pick';A.editEx({dataset:{}})};
+A.pickOk=()=>{const P=S.pick,a=db.active;if(!a||!P.sel.length)return;const md=a.mode||{reps:0,struct:'deg'},sets=+P.sets||3;
+ const mk=id=>{const ex=exById(id)||{};return {exId:id,reps:adaptTarget('',sets,+md.reps||0,md.struct||'deg'),load:'',band:ex.equip==='elastique'?(db.settings.bands[0]||{}).name:'',rp:false,rpSec:db.settings.rpSec}};
+ const nm=a.free?'Séance improvisée':'Ajout';
+ if(P.circ&&P.sel.length>1)a.blocks.push({type:P.sel.length===2?'superset':P.sel.length===3?'triset':'circuit',sets,rest:+P.rest||0,restEnd:0,module:nm,items:P.sel.map(mk),log:[]});
+ else P.sel.forEach(id=>a.blocks.push({type:'single',sets,rest:+P.rest||0,module:nm,items:[mk(id)],log:[]}));
+ const n=P.sel.length;S.pick=null;save();closeModal();render();toast(`＋ ${n} exercice${n>1?'s':''} ajouté${n>1?'s':''}`)};
+
 /* ================= Sauvegarde auto & points de restauration ================= */
 const HAS_FS=typeof window.showDirectoryPicker==='function',CAN_SHARE=(()=>{try{return !!(navigator.canShare&&navigator.canShare({files:[new File(['x'],'t.json',{type:'application/json'})]}))}catch(_){return false}})();
 let IDBP=null;
