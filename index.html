@@ -103,6 +103,7 @@ body.wide .wgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);
 body.wide .wmain,body.wide .wside{display:block}
 body.wide .wside{position:sticky;top:76px;max-height:calc(100vh - 290px);overflow:auto;padding-right:4px}
 body.wide #tbar{left:auto;right:24px;width:420px;margin:0;bottom:76px}
+#tnext{margin:6px 0 2px;line-height:1.35;color:#cfd3da}#tnext b{color:#fff}#tnext .chg{color:var(--ac);font-weight:700}
 body.wide #ttime{font-size:46px}
 body.wide nav.tabs{justify-content:center}
 body.wide nav.tabs button{flex:0 0 140px}
@@ -119,6 +120,7 @@ body.xwide .cols{column-count:3}
 <div id="tbar" hidden>
   <div class="tb-top"><span id="tlabel">Repos</span><span id="ttime">0:00</span></div>
   <div class="bar"><i id="tprog"></i></div>
+  <div id="tnext" class="xs" hidden></div>
   <div class="tb-btns"><button data-a="tAdd" data-v="-15">−15s</button><button data-a="tPause" id="tpause">⏸</button><button data-a="tAdd" data-v="15">+15s</button><button data-a="tStop">✕</button></div>
 </div>
 <nav class="tabs">
@@ -132,8 +134,9 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.12.5',APP_DATE='21/11/2026';
+const APP_VERSION='2.12.6',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.12.6','21/11/2026',['Pendant le repos : la barre du minuteur indique la suite (série/tour n/N) et, au changement d’exercice, « 🔧 À préparer » avec le matériel, l’ancrage et la charge ou les élastiques de la dernière fois']],
  ['2.12.5','21/11/2026',['Démarrage : choix de l’enchaînement « 🔁 En tours (circuit) » ou « ➡️ Exercice par exercice » (toutes les séries d’un exercice puis le suivant), mémorisé ; l’aperçu suit ce choix']],
  ['2.12.4','21/11/2026',['Séance en cours : bouton ⏸ Pause / ▶ Reprendre pour arrêter le compteur de durée (le repos en cours est aussi mis en pause) ; la durée enregistrée exclut les pauses','Bouton ↺ 0:00 pour remettre le compteur à zéro tant qu’aucune série n’est validée']],
  ['2.12.3','21/11/2026',['Démarrage d’une séance : le mode reprise s’affiche dans la fenêtre (écart depuis la dernière séance, baisse des charges, séance n/N) avec une case pour l’appliquer ou non ; s’il avait été ignoré, lien « le réactiver »']],
@@ -383,7 +386,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 /* ================= Chrono ================= */
 const T={running:false,paused:false,end:0,dur:0,rem:0,label:'',beeped:{},hideAt:0};
-function startTimer(sec,label='Repos'){sec=+sec;if(!(sec>0))return;if(db.active&&db.active.past&&label!=='manuel')return;unlockAudio();Object.assign(T,{dur:sec,end:Date.now()+sec*1000,running:true,paused:false,label,beeped:{},hideAt:0});const tb=$('#tbar');tb.hidden=false;tb.classList.remove('end');paintTimer()}
+function startTimer(sec,label='Repos'){sec=+sec;if(!(sec>0))return;if(db.active&&db.active.past&&label!=='manuel')return;unlockAudio();Object.assign(T,{dur:sec,end:Date.now()+sec*1000,running:true,paused:false,label,beeped:{},hideAt:0});const tb=$('#tbar');tb.hidden=false;try{const nx=$('#tnext'),h=label==='manuel'?'':nextUpHtml();nx.innerHTML=h;nx.hidden=!h}catch(_){}tb.classList.remove('end');paintTimer()}
 function stopTimer(){T.running=false;T.hideAt=0;$('#tbar').hidden=true}
 const tRem=()=>T.paused?T.rem:(T.end-Date.now())/1000;
 function paintTimer(){if($('#tbar').hidden)return;const r=T.running?Math.max(0,tRem()):0;$('#ttime').textContent=T.running?fmtTime(Math.ceil(r)):'GO !';$('#tlabel').textContent=T.running?T.label+(T.paused?' (pause)':''):'Repos terminé 💪';$('#tprog').style.width=(T.running?(1-r/T.dur)*100:100)+'%';$('#tpause').textContent=T.paused?'▶':'⏸'}
@@ -573,7 +576,7 @@ A.validate=el=>{
   else{save();render();restAfter(b)}
 };
 function restTxt(b){return (b.rest?'repos '+fmtDur(b.rest)+' entre '+(b.type==='single'?'séries':'tours'):'sans repos entre tours')+(b.restEnd?' · pause '+fmtDur(b.restEnd)+' à la fin':'')}
-function restAfter(b){const end=b.log.length>=b.sets;const sec=end?(b.restEnd||0):b.rest;if(sec>0)startTimer(sec,end?'Pause fin de série':'Repos');else if(end)toast('Bloc terminé ✓')}
+function restAfter(b){const end=b.log.length>=b.sets;const sec=end?(b.restEnd||(b.fromType?b.rest:0)):b.rest;if(sec>0)startTimer(sec,end?(b.restEnd?'Pause fin de bloc':'Repos · exercice suivant'):'Repos');else if(end)toast('Bloc terminé ✓ · '+nextUpHtml().replace(/<br>/g,' · ').replace(/<[^>]+>/g,''))}
 function rpCollect(bi){const a=db.active,p=a.pendingRP;p.items.forEach(ii=>{const v=$(`#rp-${bi}-${ii}`)?.value;if(v!==''&&v!=null&&+v>0)a.blocks[bi].log[p.ri][ii].rp.push(+v)})}
 A.rpDone=el=>{const bi=+el.dataset.bi,b=db.active.blocks[bi];rpCollect(bi);db.active.pendingRP=null;save();render();restAfter(b)};
 A.rpMore=el=>{const bi=+el.dataset.bi;rpCollect(bi);const sec=db.active.pendingRP.sec;save();render();startTimer(sec,'Rest-pause ⚡')};
@@ -962,6 +965,16 @@ A.sessReset=()=>{const a=db.active;if(!a||a.blocks.some(b=>b.log.length))return;
 function splitHtml(){const o=S.pendingStart;if(!o)return '';const multi=(o.moduleIds||[]).some(mid=>{const m=db.modules.find(x=>x.id===mid);return m&&m.blocks.some(b=>b.items.length>1)});if(!multi)return '';const sp=!!S.opt.split;
  return `<div class="k" style="margin-top:8px">Enchaînement</div><div class="seg"><button class="${sp?'':'on'}" data-a="splitSet" data-v="0">🔁 En tours (circuit)</button><button class="${sp?'on':''}" data-a="splitSet" data-v="1">➡️ Exercice par exercice</button></div><div class="xs muted" style="margin:-2px 0 6px">${sp?'Toutes les séries d’un exercice, puis le suivant (repos du bloc entre chaque série).':'Un tour = une série de chaque exercice du bloc, puis repos.'}</div>`}
 A.splitSet=el=>{S.opt.split=el.dataset.v==='1';modal(optsHtml())};
+
+function exGear(ex,it){const p=[EQUIP[ex.equip]||ex.equip];if(ex.anchor&&ex.anchor!=='')p.push(ANCH[ex.anchor]||ex.anchor);const L=getLastSets(ex.id);const st=L&&L.sets&&L.sets[0];
+ const bw=['pdc','traction','trx'].includes(ex.equip),u=v=>fmtNum(+v)+(isPl(ex)?' pl.':' kg');const ld=it&&it.band?('élastiques '+it.band):bw?'':it&&it.load?u(it.load):st?(st.band?'élastiques '+st.band:st.load?u(st.load):''):'';if(ld)p.push(ld);return p.filter(Boolean).join(' · ')}
+function nextUpHtml(){const a=db.active;if(!a)return '';const bi=a.blocks.findIndex(b=>b.log.length<b.sets);if(bi<0)return '✅ Tous les blocs sont terminés : touche « Terminer ✓ ».';
+ const b=a.blocks[bi],n=b.log.length+1;let prev=null;for(let i=bi;i>=0;i--){const pb=a.blocks[i];if(pb.log.length&&(i<bi||pb.log.length)){prev=pb;break}}
+ const ids=b.items.map(it=>it.exId),same=prev===b;const sig=ex=>ex?[ex.equip,ex.anchor||''].join('|'):'';
+ const prevSig=prev?new Set(prev.items.map(it=>sig(exById(it.exId)))):new Set();
+ const lines=b.items.map(it=>{const ex=exById(it.exId);if(!ex)return '';const chg=!same&&!prevSig.has(sig(ex));return `${chg?'<span class="chg">🔧</span> ':''}<b>${esc(ex.name)}</b> — ${esc(exGear(ex,it))}`}).filter(Boolean);
+ const anyChg=!same&&b.items.some(it=>!prevSig.has(sig(exById(it.exId))));
+ return `${same?'Ensuite':'<span class="chg">'+(anyChg?'À préparer':'Exercice suivant')+'</span>'} · ${b.type==='single'?'série':'tour'} ${n}/${b.sets}<br>${lines.join('<br>')}`}
 
 /* ================= Séance déjà faite (saisie après coup) ================= */
 const pad2=x=>String(x).padStart(2,'0');
