@@ -135,8 +135,9 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.12.8',APP_DATE='21/11/2026';
+const APP_VERSION='2.12.9',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.12.9','21/11/2026',['Modes Force / Hypertrophie / Endurance et séries égales : les exercices au poids du corps (tractions, pompes, fentes, TRX…) gardent les objectifs du programme au lieu d’un 8 / 12 / 15 imposé']],
  ['2.12.8','21/11/2026',['Aperçu de séance : titres des modules plus grands, numérotés et colorés (une couleur par module), type de bloc / tours / repos plus lisibles']],
  ['2.12.7','21/11/2026',['Séance en cours : un bloc ouvert avec « Afficher ce bloc » se referme avec « ▴ Masquer ce bloc » (en haut et en bas du bloc)']],
  ['2.12.6','21/11/2026',['Pendant le repos : la barre du minuteur indique la suite (série/tour n/N) et, au changement d’exercice, « 🔧 À préparer » avec le matériel, l’ancrage et la charge ou les élastiques de la dernière fois']],
@@ -486,7 +487,7 @@ function buildActive(o){const loc=curLoc();let nS=0,nM=0;const blocks=[];
     items:clone(b.items).map(it=>{const s=subFor(it.exId,loc);if(s&&s!==it.exId){nS++;return {...it,orig:it.exId,exId:s,load:'',band:''}}if(!s){nM++;return {...it,missing:true}}return it})}))});
   if(!blocks.length&&!o.free)return null;
   if(o.opts&&o.opts.split){const out=[];blocks.forEach(b=>{if(b.items.length<2){out.push(b);return}b.items.forEach((it,i)=>out.push({type:'single',sets:b.sets,rest:b.rest,restEnd:i===b.items.length-1?b.restEnd:0,module:b.module,log:[],items:[it],fromType:b.type}))});blocks.splice(0,blocks.length,...out)}
-  const md=modeById(o.opts.mode),Rm=+md.reps||0;blocks.forEach(b=>{if(o.opts.rest&&Rm&&+md.rest)b.rest=+md.rest;b.items.forEach(it=>{it.reps=adaptTarget(it.reps,b.sets,Rm,o.opts.struct)})});
+  const md=modeById(o.opts.mode),Rm=+md.reps||0;blocks.forEach(b=>{if(o.opts.rest&&Rm&&+md.rest)b.rest=+md.rest;b.items.forEach(it=>{const ex=exById(it.exId);if(ex&&isBW(ex)&&ex.mode!=='time')return;it.reps=adaptTarget(it.reps,b.sets,Rm,o.opts.struct)})});
   return {nS,nM,loc,act:{id:uid(),start:Date.now(),loc:loc.id,resume:o.opts&&(o.opts.noResume||o.opts.past)?null:resumeFor(),mode:{id:md.id,name:md.name,reps:Rm,struct:o.opts.struct},name:o.name+(loc.id!==db.settings.locations[0].id?' · '+loc.name:''),programId:o.programId||null,templateId:o.templateId||null,free:o.free?1:undefined,blocks,pendingRP:null}}}
 function previewHtml(){const o=S.pendingStart,O=S.opt;const B=buildActive({...o,opts:{...O}});if(!B)return '<p>Séance vide.</p><button class="btn ghost wide" data-a="closeModal">Fermer</button>';
   const keep=db.active;db.active=B.act;let h='';
