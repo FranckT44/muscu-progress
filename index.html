@@ -131,8 +131,9 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.8.1',APP_DATE='21/11/2026';
+const APP_VERSION='2.9.0',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.9.0','21/11/2026',['Animations 3D : « 🛠 L’animation n’est pas correcte ? » dans chaque démo — choisis une autre animation (appliquée tout de suite) et décris l’erreur','Réglages → Animations 3D : copie de tous les signalements en un clic, à coller dans la conversation pour correction','Nouvelle animation : curl assis sur banc incliné à 45° (poulie basse devant) — Curl barre courte banc incliné 45°']],
  ['2.8.1','21/11/2026',['« Machine » fusionné dans « Poulie » : un seul type de matériel (Leg curl assis et Presse pectorale assise passent en Poulie), lieux et libellés mis à jour']],
  ['2.8.0','21/11/2026',['Bouton 👁 (ou 🎬 si des vidéos sont enregistrées) à côté de chaque exercice partout : modules (liste et éditeur), programmes (« Voir les séances et leurs exercices »), aperçu de séance, remplacements ⇄, bilan de séance, Progrès → Exercices, sélecteur d’exercices']],
  ['2.7.0','21/11/2026',['Modules : rangés par groupe (WO 1, WO 2, En déplacement…, d’après le début du nom avant « · »), chaque groupe et chaque module se replie d’un tap sur son titre','Trois niveaux d’affichage : ⊞ Tout déplier · ☰ Modules en résumé (nom + exercices + ▶) · ⊟ Tout replier (groupes seuls)']],
@@ -808,6 +809,7 @@ V.settings=()=>{const st=db.settings;return `<div class="card"><div class="k">Li
 <div class="card"><div class="k">Affichage</div><label class="fld"><span>Mise en page</span><select id="sLayout"><option value="auto" ${st.layout==='auto'?'selected':''}>Automatique (large seulement avec souris sur grand écran : DeX, PC)</option><option value="mobile" ${st.layout==='mobile'?'selected':''}>Toujours mobile (1 colonne)</option><option value="wide" ${st.layout==='wide'?'selected':''}>Toujours large (multicolonne)</option></select></label><label class="fld"><span>Taille du texte</span><select id="sFs"><option value="n" ${st.fs==='n'?'selected':''}>Normale</option><option value="l" ${st.fs==='l'?'selected':''}>Grande (+10 %)</option><option value="xl" ${st.fs==='xl'?'selected':''}>Très grande (+20 %)</option></select></label></div>
 <div class="card"><div class="k">Données</div><p class="xs muted">Tout est stocké sur cet appareil. Dernière sauvegarde : <b>${st.lastBackup?fmtDateLong(st.lastBackup):'jamais'}</b>. ${(()=>{const u=unsaved();return u.total?`<span style="color:var(--ac2)">💾 Non sauvegardé : ${unsavedTxt(u)}</span>`:!st.lastBackup?'':'<span style="color:var(--ok,#4c9)">✓ Tout est sauvegardé</span>'})()}<br> « Envoyer vers OneDrive » ouvre le menu de partage du téléphone : choisis OneDrive, le dossier, et c’est fait.</p><div class="row wrap"><button class="btn" data-a="shareBackup">☁ Envoyer la sauvegarde (OneDrive…)</button><button class="btn ghost" data-a="exportJson">⬇ Télécharger (.json)</button><button class="btn ghost" data-a="importJson">⬆ Restaurer</button><button class="btn ghost" data-a="exportCsv">⬇ Export Excel (.csv)</button></div><div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line,#333)"><label style="display:flex;gap:10px;align-items:center;justify-content:flex-start;cursor:pointer"><input type="checkbox" data-ch="autoBkCh" style="width:20px;height:20px;flex:none;margin:0" ${st.autoBk?'checked':''}><b class="sm">Sauvegarde automatique à la fin de chaque séance</b></label><div class="xs muted" style="margin:4px 0 8px">${HAS_FS?'Sur ce PC : le fichier est écrit directement dans le dossier choisi, sans rien te demander.':CAN_SHARE?'Sur ce téléphone : le menu de partage s’ouvre tout seul après « Enregistrer » — touche OneDrive.':'Ce navigateur ne permet ni dossier ni partage : utilise « Télécharger ».'}</div>${HAS_FS?`<div class="row wrap" style="gap:6px;align-items:center"><span class="sm" id="dirName">📁 ${st.autoDirName?'<b>'+esc(st.autoDirName)+'</b>':'<i class="muted">aucun dossier choisi</i>'}</span><button class="btn ghost sm" data-a="dirPick">${st.autoDirName?'Changer':'Choisir le dossier…'}</button>${st.autoDirName?'<button class="btn ghost sm" data-a="dirForget">Oublier</button>':''}</div>`:''}</div>
 <input type="file" id="fImport" data-ch="doImport" accept=".json,.txt,application/json,text/plain" hidden><button class="btn danger ghost sm" data-a="resetAll" style="margin-top:14px">Revenir aux données de départ (import Excel)</button></div>
+<div class="card"><div class="k">Animations 3D</div><p class="xs muted">Une animation est fausse ? Ouvre la démo (👁) → « 🛠 L’animation n’est pas correcte ? » : choisis une autre animation tout de suite et/ou décris l’erreur. Copie ensuite tous tes signalements pour me les envoyer.</p>${(()=>{const n=db.exercises.filter(e=>e.animNote).length;return `<div class="row wrap" style="gap:6px"><button class="btn sm" data-a="animCopy" ${n?'':'disabled'}>📋 Copier les signalements (${n})</button><button class="btn ghost sm" data-a="animShow">Voir</button></div>`})()}</div>
 <div class="card"><div class="k">Points de restauration</div><p class="xs muted">Copies automatiques gardées dans l’appli (10 dernières) : après chaque séance, avant une restauration ou une fusion, et à chaque nouvelle version. En cas de bug, reviens à l’une d’elles. ⚠ Elles disparaissent si tu effaces les données du navigateur : garde aussi tes fichiers dans OneDrive.</p><div id="snapList" class="sm muted">Chargement…</div><button class="btn ghost sm" data-a="snapNow" style="margin-top:8px">＋ Créer un point maintenant</button></div>
 <div class="card"><div class="k">À propos</div><div><b>Muscu Progress v${APP_VERSION}</b> <span class="xs muted">· ${APP_DATE}</span></div><details style="margin-top:8px"><summary class="sm" style="cursor:pointer">Nouveautés des versions</summary>${CHANGELOG.map(([v,d,l])=>`<div style="margin-top:8px"><b class="sm">v${v}</b> <span class="xs muted">${d}</span><ul class="sm" style="margin:4px 0 0;padding-left:18px">${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</details></div>
 <p class="xs muted">${db.sessions.length} séances · ${db.exercises.length} exercices · ${db.modules.length} modules · ${db.programs.length} programmes</p>`};
@@ -929,6 +931,26 @@ A.pickOk=()=>{const P=S.pick,a=db.active;if(!a||!P.sel.length)return;const md=a.
  else P.sel.forEach(id=>a.blocks.push({type:'single',sets,rest:+P.rest||0,module:nm,items:[mk(id)],log:[]}));
  const n=P.sel.length;S.pick=null;save();closeModal();render();toast(`＋ ${n} exercice${n>1?'s':''} ajouté${n>1?'s':''}`)};
 
+/* ================= Signalement / choix d'animation ================= */
+const PAT_FR={lat_raise:'Élévation latérale (debout)',press:'Développé épaules (debout, barre)',curl:'Curl debout',curl_incline:'Curl assis banc incliné 45°',hammer:'Curl marteau debout',pushdown:'Extension triceps poulie haute',overhead_ext:'Extension triceps au-dessus de la tête',face_pull:'Face pull',rear_fly:'Oiseau (buste penché)',shrug:'Haussement d’épaules',pulldown:'Tirage vertical (poulie haute)',pullup:'Traction à la barre',row:'Rowing buste penché',row_stand:'Tirage horizontal debout',trx_row:'Rowing TRX',bench:'Développé couché banc plat',incline:'Développé incliné (banc)',press_stand:'Développé pecs debout (poulie/élastique)',pushup:'Pompes',pushup_trx:'Pompes pieds dans le TRX',pushup_feet:'Pompes pieds surélevés',pushup_hands:'Pompes mains surélevées',fly:'Écarté debout',crunch_kneel:'Crunch à genoux (poulie)',crunch_floor:'Crunch au sol',legraise_floor:'Relevés de jambes au sol',hang_raise:'Relevés de jambes suspendu',plank:'Gainage',lunge:'Fente',squat:'Squat',deadlift:'Soulevé de terre',bridge:'Pont fessier au sol',hipthrust:'Hip thrust (épaules sur banc)',trx_knees:'Genoux-poitrine TRX',legcurl:'Leg curl',wrist:'Flexion des poignets'};
+function animFixHtml(ex){const cur=patFor(ex),open=S.animFixOpen===ex.id;
+ const head=`<button class="link xs" data-a="animFixTg" data-id="${ex.id}" style="margin:2px 0 8px">${ex.animNote?'🛠 Correction signalée — voir / modifier':'🛠 L’animation n’est pas correcte ?'}</button>`;
+ if(!open)return head;
+ return head+`<div class="card" style="padding:10px 12px;margin:0 0 10px"><label class="fld"><span>Animation utilisée</span><select data-ch="animPick" data-id="${ex.id}">${Object.keys(PAT).filter(k=>PAT_FR[k]).sort((a,b)=>PAT_FR[a].localeCompare(PAT_FR[b])).map(k=>`<option value="${k}" ${k===cur?'selected':''}>${esc(PAT_FR[k])}${k===cur&&!ex.anim?' (auto)':''}</option>`).join('')}</select></label>${ex.anim?`<button class="link xs" data-a="animAuto" data-id="${ex.id}">↺ Revenir au choix automatique</button>`:''}
+ <label class="fld"><span>Ce qui ne va pas (position, banc, angle, matériel, ancrage…)</span><textarea id="animNote" rows="3" placeholder="ex. se fait assis sur un banc, dossier à 45°, poulie basse devant">${esc(ex.animNote||'')}</textarea></label>
+ <div class="row" style="gap:6px">${ex.animNote?`<button class="btn ghost sm" data-a="animNoteDel" data-id="${ex.id}">Supprimer le signalement</button>`:''}<span style="flex:1"></span><button class="btn sm" data-a="animNoteOk" data-id="${ex.id}">Enregistrer</button></div>
+ <div class="xs muted" style="margin-top:6px">Tes signalements se copient tous d’un coup dans Réglages → « Animations 3D » pour me les envoyer.</div></div>`}
+A.animFixTg=el=>{S.animFixOpen=S.animFixOpen===el.dataset.id?null:el.dataset.id;const ex=exById(el.dataset.id);$('#animFix').innerHTML=animFixHtml(ex)};
+A.animPick=el=>{const ex=exById(el.dataset.id);ex.anim=el.value;save();animReload(ex)};
+A.animAuto=el=>{const ex=exById(el.dataset.id);delete ex.anim;save();animReload(ex)};
+function animReload(ex){$('#animFix').innerHTML=animFixHtml(ex);const v=$('#v3d');if(v&&window.THREE){if(VW){try{VW.stop()}catch(_){}}VW=viewer3d(v,ex)}}
+A.animNoteOk=el=>{const ex=exById(el.dataset.id);const t=($('#animNote').value||'').trim();if(t){ex.animNote=t;ex.animNoteAt=Date.now()}else{delete ex.animNote;delete ex.animNoteAt}save();S.animFixOpen=null;$('#animFix').innerHTML=animFixHtml(ex);toast(t?'🛠 Signalement enregistré':'Signalement supprimé')};
+A.animNoteDel=el=>{const ex=exById(el.dataset.id);delete ex.animNote;delete ex.animNoteAt;save();S.animFixOpen=null;$('#animFix').innerHTML=animFixHtml(ex)};
+function animReportTxt(){const L=db.exercises.filter(e=>e.animNote||e.anim);if(!L.length)return '';
+ return 'Corrections animations 3D — Muscu Progress v'+APP_VERSION+'\n\n'+L.map(e=>`• ${e.name} [${e.id} · ${EQUIP[e.equip]||e.equip}${e.anchor?' · ancrage '+e.anchor:''}${e.move?' · '+e.move:''}]\n  animation : ${PAT_FR[patFor(e)]||patFor(e)}${e.anim?' (choisie à la main)':''}${e.animNote?'\n  à corriger : '+e.animNote.replace(/\n+/g,' / '):''}`).join('\n\n')}
+A.animCopy=async()=>{const t=animReportTxt();if(!t)return toast('Aucun signalement pour l’instant');try{await navigator.clipboard.writeText(t);toast('📋 Copié : colle-le dans la conversation avec Claude')}catch(_){modal(`<h3>Signalements d’animation</h3><p class="xs muted">Sélectionne tout et copie :</p><textarea rows="14" style="width:100%">${esc(t)}</textarea><button class="btn ghost wide" data-a="closeModal">Fermer</button>`)}};
+A.animShow=()=>{const t=animReportTxt();modal(`<h3>🛠 Signalements d’animation</h3>${t?`<textarea rows="16" style="width:100%" readonly>${esc(t)}</textarea>`:'<p class="sm muted">Aucun signalement. Ouvre la démo d’un exercice (👁) puis « 🛠 L’animation n’est pas correcte ? ».</p>'}<div class="row">${t?'<button class="btn" data-a="animCopy">📋 Copier</button>':''}<button class="btn ghost" data-a="closeModal">Fermer</button></div>`)};
+
 /* ================= Sauvegarde auto & points de restauration ================= */
 const HAS_FS=typeof window.showDirectoryPicker==='function',CAN_SHARE=(()=>{try{return !!(navigator.canShare&&navigator.canShare({files:[new File(['x'],'t.json',{type:'application/json'})]}))}catch(_){return false}})();
 let IDBP=null;
@@ -962,13 +984,14 @@ S.view=db.active?'workout':'home';if(db.active)wake(true);render();
 if(prevV&&prevV!==APP_VERSION)setTimeout(()=>toast(`✓ Mise à jour installée : v${APP_VERSION}`),400);
 /* ================= Mannequin 3D (three.js chargé à la demande) ================= */
 const M3D={p:null,stop:null};
-function loadThree(){if(window.THREE)return Promise.resolve();if(M3D.p)return M3D.p;M3D.p=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';s.onload=()=>window.THREE?res():(M3D.p=null,rej(new Error('three')));s.onerror=()=>{M3D.p=null;rej(new Error('three'))};document.head.appendChild(s)});return M3D.p}
+function loadThree(){if(window.THREE)return Promise.resolve();if(M3D.p)return M3D.p;M3D.p=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';s.onload=()=>res();s.onerror=()=>{M3D.p=null;rej(new Error('three'))};document.head.appendChild(s)});return M3D.p}
 const PI=Math.PI,HP=PI/2;
 /* poses : r=[pitch,yaw] racine, p=[x,y,z], sp=buste (+ = penché avant), sh=[rx,rz,ry] épaule, el=[rx,rz] coude, hp=[rx,rz] hanche, kn=genou, wr=poignet, hy=prise, shr=haussement */
 const PAT={
  lat_raise:{A:{sh:[0,.14],el:[-.28,0],hy:HP},B:{sh:[0,1.5],el:[-.28,0],hy:HP},cam:[.15,1.25,3]},
  press:{A:{sh:[-.2,1.45],el:[0,1.5]},B:{sh:[-.2,2.78],el:[0,.08]},cam:[.4,1.35,3.1]},
  curl:{A:{sh:[-.05,.1],el:[-.15,0],hy:HP},B:{sh:[-.12,.1],el:[-2.35,0],hy:HP},cam:[1.15],cable:[0,.15,.55],anc:{bas:[0,.15,.55],median:[0,1.0,.7],haut:[0,1.9,.6]}},
+ curl_incline:{A:{r:[-PI/4,0],hp:[-.8,.18],kn:1.45,sh:[.72,.12],el:[-.1,0],hy:HP},B:{r:[-PI/4,0],hp:[-.8,.18],kn:1.45,sh:[.6,.12],el:[-2.25,0],hy:HP},ground:'pelvis',pt:[.58,.25],bench:{inc:PI/4},cam:[1.35],cable:[0,.15,1.15],anc:{bas:[0,.15,1.15],median:[0,.9,1.15],haut:[0,1.9,.9]}},
  hammer:{A:{sh:[-.05,.1],el:[-.15,0],hy:0},B:{sh:[-.12,.1],el:[-2.3,0],hy:0},cam:[1.15],cable:[0,.15,.55],anc:{bas:[0,.15,.55],median:[0,1.0,.7],haut:[0,1.9,.6]}},
  pushdown:{A:{sp:.15,sh:[-.3,.1],el:[-1.9,0],hy:HP},B:{sp:.15,sh:[-.15,.1],el:[-.1,0],hy:HP},cam:[1.2,1.3,3.2],anc:{haut:[0,2.15,.55],median:[0,2.15,.55],bas:[0,2.15,.55]},cable:[0,2.15,.55]},
  overhead_ext:{A:{sh:[-2.95,.12],el:[-2.2,0],hy:HP},B:{sh:[-2.95,.12],el:[-.1,0],hy:HP},cam:[1.3,1.35,3.2],cable:[0,.2,-.7],anc:{bas:[0,.15,-.7],median:[0,1.1,-.8],haut:[0,1.1,-.8]}},
@@ -1013,6 +1036,8 @@ function patFor(ex){const m=ex.move||'',q=ex.equip;let k=MOVE2PAT[m];
  if(m==='Relevés de jambes'&&q==='trx')k='trx_knees';
  if(m==='Charnière hanche'&&/surélev/i.test(ex.name||''))k='hipthrust';
  if(k==='pushup'&&q==='trx')k='pushup_trx';
+ if((k==='curl'||k==='hammer'||(!k&&ex.muscle==='Biceps'))&&/inclin/i.test(ex.name||''))k='curl_incline';
+ if(ex.anim&&PAT[ex.anim])return ex.anim;
  if(!k){const sub=ex.sub||'',g=ex.muscle||'';k=g==='Épaules'?'lat_raise':g==='Biceps'?'curl':g==='Triceps'?'pushdown':g==='Pectoraux'?'press_stand':g==='Dos'?'row_stand':g==='Abdos'?'crunch_kneel':g==='Jambes'?(sub==='Ischios'?'legcurl':'squat'):g==='Fessiers'?'bridge':g==='Avant-bras'?'wrist':'curl'}
  return k}
 function buildMan(T){
@@ -1175,13 +1200,14 @@ A.vidEditOk=el=>{const ex=exById(el.dataset.id),v=ex&&ex.videos&&ex.videos[+el.d
 A.vidDel=el=>{const ex=exById(el.dataset.id);if(!ex||!ex.videos)return;const v=ex.videos[+el.dataset.i];if(!v||!confirm('Supprimer « '+v.label+' » ?'))return;ex.videos.splice(+el.dataset.i,1);if(!ex.videos.length)delete ex.videos;S.vidDirty=1;save();$('#vidBox').innerHTML=vidHtml(ex)};
 function closeDemo(){if(VW){try{VW.stop()}catch(_){}VW=null}const d=$('#demo');d.hidden=true;d.innerHTML='';if(S.vidDirty){S.vidDirty=0;render()}}
 A.closeDemo=()=>closeDemo();
-A.demo=el=>{const ex=exById(el.dataset.id);if(!ex)return;closeDemo();S.vidEdit=null;
+A.demo=el=>{const ex=exById(el.dataset.id);if(!ex)return;closeDemo();S.vidEdit=null;S.animFixOpen=null;
  const yt='https://www.youtube.com/results?search_query='+encodeURIComponent(ex.name+' exercice musculation technique');
  const sec=(ex.sec||[]).map(x=>String(x).replace('|',' › ')).filter(Boolean);
  const d=$('#demo');d.innerHTML=`<div class="sheet"><h3 style="margin-bottom:2px">👁 ${esc(ex.name)}</h3><div class="xs muted">${esc(EQUIP[ex.equip]||'')}${ex.anchor&&ex.anchor!=='pieds'&&ANCH[ex.anchor]?' · '+esc(ANCH[ex.anchor]):''}</div>
  <div id="v3d" class="v3d"><div class="sm muted" style="padding:120px 10px;text-align:center">Chargement du mannequin…</div></div><div class="xs muted" style="text-align:center">↔ glisse pour faire tourner le mannequin · schéma indicatif</div>
  <div class="lg xs"><span><i style="background:#f08a6c"></i>Principal : ${muscLabel(ex)}</span>${sec.length?`<span><i style="background:#eeb39b"></i>Secondaire : ${sec.map(esc).join(', ')}</span>`:''}</div>
  ${ex.notes?`<div class="xs muted" style="margin-bottom:10px">📝 ${esc(ex.notes)}</div>`:''}
+ <div id="animFix">${animFixHtml(ex)}</div>
  <div id="vidBox" data-id="${ex.id}">${vidHtml(ex)}</div>
  <a class="btn ${(ex.videos||[]).length?'ghost ':''}wide" href="${yt}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">🔎 Chercher des vidéos sur YouTube</a><button class="btn ghost wide" data-a="closeDemo">Fermer</button></div>`;d.hidden=false;
  vidRefresh(ex);
