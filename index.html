@@ -78,6 +78,8 @@ table.log{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px}table.
 .edset{cursor:pointer}.edset .edp{opacity:.45;font-size:11px}.edset:hover{background:rgba(255,255,255,.06)}
 .chip.trans{margin:6px 0 2px 34px;padding:4px 12px;font-size:13px;border-color:var(--ac);color:var(--ac)}
 header.top .topb{min-width:50px;height:46px;font-size:24px;border-radius:12px;margin-left:8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px}header.top .topb span{font-size:14px;font-weight:700}@media (max-width:560px){header.top .topb span{display:none}}
+.hlp{background:none;border:1px solid var(--line);color:var(--ac);border-radius:50%;width:20px;height:20px;font-size:12px;line-height:1;padding:0;margin-left:6px;cursor:pointer;vertical-align:middle;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none;text-transform:none;letter-spacing:0}.hlp:hover{background:var(--ac);color:#111}
+#hbub{position:fixed;z-index:60;background:#262a33;color:#e9ebef;border:1px solid var(--ac);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.4;box-shadow:0 8px 30px rgba(0,0,0,.5)}#hbub b{display:block;color:var(--ac);margin-bottom:4px}
 .demo-b.eye{font-size:20px;line-height:1;padding:3px 7px;margin:0 2px 0 6px;vertical-align:middle;border-radius:9px;background:var(--card2);border:1px solid var(--line)}.demo-b.eye:hover{border-color:var(--ac)}
 .demo-b{background:none;border:0;font-size:22px;padding:2px 6px;cursor:pointer;color:inherit}button.icon[data-a=demo]{font-size:21px;min-width:40px}button.icon.sw[data-a=demo]{height:34px;min-width:42px;font-size:21px}
 .sheet{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
@@ -138,8 +140,10 @@ body.xwide .cols{column-count:3}
 <div id="toast"></div>
 <script>
 'use strict';
-const APP_VERSION='2.13.7',APP_DATE='21/11/2026';
+const APP_VERSION='2.14.1',APP_DATE='21/11/2026';
 const CHANGELOG=[
+ ['2.14.1','21/11/2026',['Séance conseillée : « 💾 Enregistrer comme module » pour la réutiliser (Modules, Séance libre, programmes)','Bulles d’aide ⓘ sur les réglages et les champs principaux (démarrage, saisie, éditeurs) : touche ⓘ pour l’explication']],
+ ['2.14.0','21/11/2026',['🎯 Séance conseillée : indique ta durée disponible ; l’appli compose une séance avec le matériel du jour, en priorisant les muscles en retard (4 dernières semaines, jours sans travail), les exercices pas faits depuis longtemps ou qui stagnent','Format adapté au temps (circuits si court, trisets sinon), raisons affichées pour chaque exercice, ⇄ remplacer, ✕ retirer, 🔄 autre proposition, puis ▶ Démarrer (n’avance pas le programme)']],
  ['2.13.7','21/11/2026',['Réglages : chaque modification est enregistrée et appliquée automatiquement (plus besoin de toucher « Enregistrer »)']],
  ['2.13.6','21/11/2026',['Réglages : tuiles classées par ordre alphabétique']],
  ['2.13.5','21/11/2026',['Affichage multicolonne automatique aussi en mode DeX et sur tablette en paysage (écran d’au moins 1100 px)','Le choix d’affichage (auto / mobile / large) est propre à chaque appareil et n’est plus transmis par les sauvegardes']],
@@ -374,8 +378,8 @@ const LAYOUT={home:'cols',programs:'cols',modules:'cols',exercises:'cols',progre
 function render(){const v=V[S.view]?S.view:'home';S.view=v;$('#view').innerHTML=`<div class="${LAYOUT[S.view]||'narrow'}">${V[S.view]()}</div>`;$('#title').textContent=TITLES[S.view]||'Muscu Progress';const nv=NAVMAP[S.view]??S.view;document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===nv));$('#resume').hidden=!(db.active&&S.view!=='workout');afterRender()}
 function go(v){S.view=v;render();window.scrollTo(0,0)}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2400)}
-function modal(html){const m=$('#modal');m.innerHTML=`<div class="sheet">${html}</div>`;m.hidden=false}
-function afterRender(){if(S.view==='settings'){setFoldInit();snapRender()}}
+function modal(html){const m=$('#modal');m.innerHTML=`<div class="sheet">${html}</div>`;m.hidden=false;try{helpDecorate(m)}catch(_){}}
+function afterRender(){if(S.view==='settings'){setFoldInit();snapRender()}try{helpDecorate($('#view'))}catch(_){}}
 function setSort(){const cards=[...document.querySelectorAll('#view .card')].filter(c=>c.querySelector(':scope > .k'));if(cards.length<2)return;const par=cards[0].parentElement;const t=c=>c.querySelector(':scope > .k').textContent.replace(/^[▾▸]\s*/,'').trim();cards.sort((x,y)=>t(x).localeCompare(t(y),'fr',{sensitivity:'base'})).forEach(c=>par.appendChild(c))}
 function setFoldInit(){setSort();document.querySelectorAll('#view .card').forEach(c=>{const k=c.querySelector(':scope > .k');if(!k||k.dataset.a)return;const key='set|'+k.textContent.trim();k.dataset.a='setFold';k.dataset.v=key;k.classList.add('sfh');k.insertAdjacentHTML('afterbegin','<span class="fa"></span>');setFoldApply(c,hF(key))})}
 function setFoldApply(c,f){c.classList.toggle('cf',f);const a=c.querySelector(':scope > .k .fa');if(a)a.textContent=f?'▸':'▾'}
@@ -457,7 +461,7 @@ V.home=()=>{
     h+='</div>'});
   const fm=db.modules.map(m=>({m,a:adaptCount([m.id])})).sort((x,y)=>(x.a.miss>0)-(y.a.miss>0));
   if(hF('home|lib'))h+=`<div class="card"><div class="fh" data-a="fold" data-v="home|lib"><div class="k">Séance libre <span class="muted" style="text-transform:none;letter-spacing:0">· ${db.modules.length} modules</span></div><span class="fa">▸</span></div></div>`;
-  else h+=`<div class="card"><div class="fh" data-a="fold" data-v="home|lib"><div class="k">Séance libre</div><span class="fa">▾</span></div><button class="btn ghost wide" data-a="compose">🧩 Composer une séance (choisir plusieurs modules)</button><div class="chips">${fm.map(({m,a})=>`<button class="chip" data-a="startMod" data-m="${m.id}" ${a.miss?'style="opacity:.55"':''}>▶ ${esc(m.name)}${a.miss?' ⚠':a.sub?' ↺':''}</button>`).join('')||'<span class="muted sm">Crée d’abord un module.</span>'}</div><div class="xs muted" style="margin-top:6px">↺ = exercices adaptés au matériel · ⚠ = certains exercices sans équivalent ici</div><button class="btn ghost wide" data-a="freeStart" style="margin-top:10px">✍️ Séance improvisée (je choisis les exercices)</button><button class="btn ghost wide" data-a="pastStart" style="margin-top:6px">📝 Saisir une séance déjà faite (sans l’appli)</button></div>`;
+  else h+=`<div class="card"><div class="fh" data-a="fold" data-v="home|lib"><div class="k">Séance libre</div><span class="fa">▾</span></div><button class="btn ghost wide" data-a="compose">🧩 Composer une séance (choisir plusieurs modules)</button><div class="chips">${fm.map(({m,a})=>`<button class="chip" data-a="startMod" data-m="${m.id}" ${a.miss?'style="opacity:.55"':''}>▶ ${esc(m.name)}${a.miss?' ⚠':a.sub?' ↺':''}</button>`).join('')||'<span class="muted sm">Crée d’abord un module.</span>'}</div><div class="xs muted" style="margin-top:6px">↺ = exercices adaptés au matériel · ⚠ = certains exercices sans équivalent ici</div><button class="btn wide" data-a="genOpen" style="margin-top:10px">🎯 Séance conseillée (selon ton temps et ton historique)</button><button class="btn ghost wide" data-a="freeStart" style="margin-top:6px">✍️ Séance improvisée (je choisis les exercices)</button><button class="btn ghost wide" data-a="pastStart" style="margin-top:6px">📝 Saisir une séance déjà faite (sans l’appli)</button></div>`;
   const last=db.sessions[db.sessions.length-1];
   if(last){const t=sessionTotals(last),pv=prevComparable(last),pt=pv&&sessionTotals(pv);
     h+=`<div class="card tap" data-a="openSession" data-id="${last.id}"><div class="k">Dernière séance · ${fmtDate(last.start)}</div><b>${esc(last.name)}</b><div class="kpis">${kpi('Volume',fmtKg(t.volume),pt&&delta(t.volume,pt.volume))}${kpi('Séries',t.sets,pt&&delta(t.sets,pt.sets))}${kpi('Durée',fmtMin(last.end-last.start))}</div><div class="xs muted">Voir le bilan →</div></div>`}
@@ -508,6 +512,7 @@ A.startGo=()=>{const o=S.pendingStart;const O=S.opt;if(O.past&&!pastOk(O))return
 function buildActive(o){const loc=curLoc();let nS=0,nM=0;const blocks=[];
   o.moduleIds.forEach(mid=>{const m=db.modules.find(x=>x.id===mid);if(m)m.blocks.forEach(b=>blocks.push({type:b.type,sets:+b.sets||1,rest:+b.rest||0,restEnd:+b.restEnd||0,module:m.name,log:[],
     items:clone(b.items).map(it=>{const s=subFor(it.exId,loc);if(s&&s!==it.exId){nS++;return {...it,orig:it.exId,exId:s,load:'',band:''}}if(!s){nM++;return {...it,missing:true}}return it})}))});
+  if(o.gen)clone(o.gen).forEach(b=>{b.items=b.items.map(it=>{const s=subFor(it.exId,loc);return s&&s!==it.exId?{...it,orig:it.exId,exId:s}:it});blocks.push(b)});
   if(!blocks.length&&!o.free)return null;
   if(o.opts&&o.opts.split){const out=[];blocks.forEach(b=>{if(b.items.length<2){out.push(b);return}b.items.forEach((it,i)=>out.push({type:'single',sets:b.sets,rest:b.rest,restEnd:i===b.items.length-1?b.restEnd:0,module:b.module,log:[],items:[it],fromType:b.type}))});blocks.splice(0,blocks.length,...out)}
   const md=modeById(o.opts.mode),Rm=+md.reps||0;blocks.forEach(b=>{if(o.opts.rest&&Rm&&+md.rest)b.rest=+md.rest;b.items.forEach(it=>{const ex=exById(it.exId);if(ex&&isBW(ex)&&ex.mode!=='time')return;it.reps=adaptTarget(it.reps,b.sets,Rm,o.opts.struct)})});
@@ -1020,6 +1025,117 @@ A.editSetOk=()=>{const E=S.edSet,a=db.active;if(!E||!a)return;const b=a.blocks[E
 A.editSetDel=()=>{const E=S.edSet,a=db.active;if(!E||!a)return;const b=a.blocks[E.bi];b.log[E.ri][E.ii]=null;if(!b.log[E.ri].some(Boolean))b.log.splice(E.ri,1);save();closeModal();render();toast('Valeur effacée')};
 
 A.transT=el=>{S.transNx=el.dataset.ex;startTimer(+db.settings.transSec||25,'Transition')};
+
+/* ================= Séance conseillée (générateur) ================= */
+const GEN_W={'Dos':1.25,'Pectoraux':1.1,'Jambes':1.2,'Fessiers':.9,'Épaules':1,'Biceps':.6,'Triceps':.6,'Abdos':.7};
+function genNeeds(loc){const now=Date.now(),D=864e5,since=now-28*D;const sets={},last={};
+ db.sessions.forEach(s=>{setsOf(s).forEach(st=>musCredits(st).forEach(([g,sb,w])=>{if(s.start>=since){sets[g]=(sets[g]||0)+w;sets[g+'|'+sb]=(sets[g+'|'+sb]||0)+w}if(w>=1){last[g]=Math.max(last[g]||0,s.start);last[g+'|'+sb]=Math.max(last[g+'|'+sb]||0,s.start)}}))});
+ const groups=Object.keys(GEN_W).filter(g=>GROUPS().includes(g));const tw=groups.reduce((a,g)=>a+GEN_W[g],0),tot=Math.max(30,groups.reduce((a,g)=>a+(sets[g]||0),0));
+ const N={};groups.forEach(g=>{const target=tot*GEN_W[g]/tw,have=sets[g]||0,days=last[g]?Math.round((now-last[g])/D):99;N[g]={g,need:(target-have)/Math.max(1,target)+Math.min(days,30)/20,have,days}});return {N,sets,last}}
+function exLastDays(id){for(let i=db.sessions.length-1;i>=0;i--){const s=db.sessions[i];if(exSets(s,id).length)return Math.round((Date.now()-s.start)/864e5)}return 99}
+function exStagn(id){const L=db.sessions.filter(s=>exSets(s,id).length).slice(-3);if(L.length<3)return false;const v=L.map(s=>exStats(exSets(s,id),id).volume);return !(v[2]>Math.max(v[0],v[1])*1.005)}
+function genPlan(o){const loc=curLoc(),{N,sets,last}=genNeeds(loc),dur=+o.dur||45,R=o.seed!=null?mulberry(o.seed):Math.random;
+ const k=dur<=25?4:3,blockSec=k*3*55+(k-1)*3*15+3*60+90,nBlocks=Math.max(1,Math.round(dur*60/blockSec)),nEx=nBlocks*k;
+ const focus=o.focus&&o.focus.length?o.focus:null,groups=Object.values(N).filter(x=>!focus||focus.includes(x.g)).map(x=>({...x}));
+ const used=new Set(o.exclude||[]),moves=new Set(),pick=[];
+ const cand=g=>db.exercises.filter(e=>e.muscle===g.g&&feasible(e,loc)&&!used.has(e.id)&&!(e.move&&moves.has(e.move))&&e.mode!=='time');
+ for(let n=0;n<nEx&&groups.length;n++){groups.sort((a,b)=>b.need-a.need);let g=groups.find(x=>cand(x).length);if(!g)break;
+  const C=cand(g).map(e=>{const sbk=g.g+'|'+(e.sub||''),sbHave=sets[sbk]||0,d=exLastDays(e.id),st=exStagn(e.id),dd=d>=99?12:Math.min(d,40);
+   const sc=(e.type==='poly'?.6:0)+dd/25-sbHave/12+(st?.35:0)+R()*.8;return {e,sc,d,st,sbHave}}).sort((a,b)=>b.sc-a.sc);
+  const c=C[0];used.add(c.e.id);if(c.e.move)moves.add(c.e.move);
+  const why=[`${g.g} : ${fmtNum(Math.round((sets[g.g]||0)*10)/10)} série${(sets[g.g]||0)>1?'s':''} en 4 sem.${g.days<99?` · dernier travail il y a ${g.days} j`:' · jamais travaillé'}`];
+  if(c.e.sub)why.push(`${c.e.sub} : ${fmtNum(Math.round(c.sbHave*10)/10)} série(s)`);if(c.d<99)why.push(`exercice fait il y a ${c.d} j`);else why.push('nouvel exercice pour toi');if(c.st)why.push('⚠ stagne depuis 3 séances : on relance');
+  pick.push({exId:c.e.id,g:g.g,type:c.e.type,why});g.need-=1.1;(c.e.sec||[]).forEach(s=>{const x=groups.find(y=>y.g===s.split('|')[0]);if(x)x.need-=.35})}
+ // ordonner : poly d'abord, puis répartir pour éviter 2 fois le même groupe dans un bloc
+ pick.sort((a,b)=>(a.type==='poly'?0:1)-(b.type==='poly'?0:1));
+ const blocks=[...Array(Math.max(1,Math.ceil(pick.length/k)))].map(()=>[]);
+ pick.forEach(p=>{let bi=blocks.findIndex(b=>b.length<k&&!b.some(x=>x.g===p.g));if(bi<0)bi=blocks.findIndex(b=>b.length<k);blocks[bi].push(p)});
+ return {dur,k,loc:loc.id,blocks:blocks.filter(b=>b.length),focus}}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function genEst(P){return Math.round(P.blocks.reduce((a,b)=>a+3*(b.length*55+(b.length-1)*15+60)+90,0)/60)}
+function genBlocks(P){return P.blocks.map((b,i)=>({type:b.length===1?'single':b.length===2?'superset':b.length===3?'triset':'circuit',sets:3,rest:60,restEnd:i<P.blocks.length-1?90:0,module:'Séance conseillée · bloc '+(i+1),log:[],items:b.map(p=>({exId:p.exId,reps:exById(p.exId)?.type==='iso'?'15/12/échec':'12/10/échec',load:'',band:'',rp:false,rpSec:db.settings.rpSec}))}))}
+A.genOpen=()=>{S.gen=S.gen||{dur:db.settings.genDur||45,focus:[]};const G=S.gen,loc=curLoc();
+ modal(`<h3>🎯 Séance conseillée</h3><p class="xs muted">L’appli compose une séance selon ton temps disponible, le matériel du jour (${esc(loc.icon||'')} ${esc(loc.name)}) et les muscles à renforcer d’après ton historique. Échauffement non compris.</p>
+ <div class="k">Durée disponible</div><div class="chips">${[20,30,45,60,75,90].map(d=>`<button class="chip ${+G.dur===d?'on':''}" data-a="genDur" data-v="${d}">${d} min</button>`).join('')}</div>
+ <div class="k" style="margin-top:8px">Muscles</div><div class="chips"><button class="chip ${G.focus.length?'':'on'}" data-a="genFocus" data-v="">⚖️ Équilibre automatique</button>${Object.keys(GEN_W).filter(g=>GROUPS().includes(g)).map(g=>`<button class="chip ${G.focus.includes(g)?'on':''}" data-a="genFocus" data-v="${esc(g)}">${esc(g)}</button>`).join('')}</div>
+ <button class="btn big wide" data-a="genGo" style="margin-top:12px">Composer la séance</button><button class="btn ghost wide" data-a="closeModal">Annuler</button>`)};
+A.genDur=el=>{S.gen.dur=+el.dataset.v;db.settings.genDur=S.gen.dur;save();A.genOpen()};
+A.genFocus=el=>{const v=el.dataset.v,F=S.gen.focus;if(!v)S.gen.focus=[];else{const i=F.indexOf(v);if(i>=0)F.splice(i,1);else F.push(v)}A.genOpen()};
+A.genGo=()=>{const G=S.gen;G.seed=Math.floor(Math.random()*1e9);G.plan=genPlan({dur:G.dur,focus:G.focus,seed:G.seed});genShow()};
+A.genRegen=()=>A.genGo();
+function genShow(){const G=S.gen,P=G.plan;if(!P||!P.blocks.length){modal(`<h3>🎯 Séance conseillée</h3><p class="sm">Aucun exercice possible avec le matériel du jour pour ces muscles. Active plus de matériel ou choisis d’autres muscles.</p><button class="btn ghost wide" data-a="genOpen">Retour</button>`);return}
+ const PVC=['#ff8a3d','#4cc3ff','#7ee081','#c792ea','#ffd166','#ff6b9a'];
+ modal(`<h3>🎯 Séance conseillée · ~${genEst(P)} min</h3><div class="xs muted">${G.focus.length?'Cible : '+G.focus.map(esc).join(', '):'⚖️ Équilibre automatique'} · ${P.blocks.reduce((a,b)=>a+b.length,0)} exercices · 3 tours par bloc · repos 1 min</div>
+ ${P.blocks.map((b,bi)=>`<div class="pvh" style="--c:${PVC[bi%6]}"><span class="pvn">${bi+1}</span>${b.length===1?'Exercice':b.length===2?'Superset':b.length===3?'Triset':'Circuit'} · 3 tours</div>${b.map((p,pi)=>{const ex=exById(p.exId)||{};return `<div class="li" style="padding:8px 0"><div class="row sb" style="gap:6px;align-items:center"><b class="sm">${esc(ex.name)}${eye(p.exId)}</b><span class="row" style="gap:4px"><button class="icon" data-a="genSwap" data-b="${bi}" data-p="${pi}" title="Autre exercice">⇄</button><button class="icon" data-a="genDel" data-b="${bi}" data-p="${pi}" title="Retirer">✕</button></span></div><div class="xs"><span class="mus">${muscLabel(ex)}</span> <span class="muted">${esc(EQUIP[ex.equip]||'')}</span></div><div class="xs muted">${p.why.map(esc).join(' · ')}</div></div>`}).join('')}`).join('')}
+ <div class="row" style="gap:6px;margin-top:12px;flex-wrap:wrap"><button class="btn ghost" data-a="genRegen">🔄 Autre proposition</button><button class="btn ghost" data-a="genOpen">⚙ Durée / muscles</button><button class="btn ghost" data-a="genSave">💾 Enregistrer comme module</button><span style="flex:1"></span><button class="btn" data-a="genStart">▶ Démarrer</button></div><button class="btn ghost wide" data-a="closeModal" style="margin-top:6px">Fermer</button>`)}
+A.genDel=el=>{const P=S.gen.plan,b=P.blocks[+el.dataset.b];b.splice(+el.dataset.p,1);P.blocks=P.blocks.filter(x=>x.length);genShow()};
+A.genSwap=el=>{const P=S.gen.plan,b=P.blocks[+el.dataset.b],p=b[+el.dataset.p],loc=curLoc(),usedIds=new Set(P.blocks.flat().map(x=>x.exId)),cur=exById(p.exId);
+ p.tried=p.tried||[p.exId];const C=db.exercises.filter(e=>e.muscle===p.g&&feasible(e,loc)&&!usedIds.has(e.id)&&!p.tried.includes(e.id)&&e.mode!=='time').sort((a,c)=>(c.sub===cur.sub)-(a.sub===cur.sub)||exLastDays(c.id)-exLastDays(a.id));
+ if(!C.length){p.tried=[p.exId];toast('Pas d’autre exercice '+p.g+' possible ici');return}const n=C[0];p.tried.push(n.id);p.exId=n.id;p.type=n.type;const d=exLastDays(n.id);p.why=[`remplacement (${p.g})`,d<99?`fait il y a ${d} j`:'nouvel exercice pour toi'];genShow()};
+A.genStart=()=>{const P=S.gen.plan;if(!P||!P.blocks.length)return;closeModal();startWorkout({name:'Séance conseillée',moduleIds:[],free:true,gen:genBlocks(P)})};
+
+A.genSave=()=>{const P=S.gen&&S.gen.plan;if(!P||!P.blocks.length)return;const d=new Date();S.genName=S.genName||('Séance conseillée · '+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' · '+genEst(P)+' min');
+ modal(`<h3>💾 Enregistrer comme module</h3><p class="xs muted">Le module apparaîtra dans l’onglet Modules (groupe « Séance conseillée ») et dans Séance libre. Tu pourras le relancer, le modifier ou l’ajouter à un programme.</p><label class="fld"><span>Nom du module</span><input id="genNm" value="${esc(S.genName)}"></label><div class="row" style="gap:6px"><button class="btn ghost" data-a="genBack">← Retour</button><span style="flex:1"></span><button class="btn" data-a="genSaveOk">Enregistrer</button></div>`)};
+A.genBack=()=>genShow();
+A.genSaveOk=()=>{const P=S.gen.plan,nm=($('#genNm').value||'').trim();if(!nm)return toast('Donne un nom');const blocks=genBlocks(P).map(b=>({type:b.type,sets:b.sets,rest:b.rest,restEnd:b.restEnd,items:b.items}));
+ const g=Object.entries(P.blocks.flat().reduce((a,p)=>(a[p.g]=(a[p.g]||0)+1,a),{})).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).join(' / ');
+ db.modules.push({id:uid(),name:nm,tag:g,blocks});S.genName=null;save();genShow();toast('💾 Module « '+nm+' » enregistré')};
+
+/* ================= Bulles d'aide ⓘ ================= */
+const HELP={
+'Lieux et matériel':'Tes lieux d’entraînement (Maison, En déplacement…) et le matériel / les ancrages disponibles dans chacun. Si un exercice n’est pas faisable ici, la séance le remplace automatiquement (↺) par un équivalent.',
+'Élastiques':'Tes élastiques et leur résistance en kg. Sert à convertir une combinaison d’élastiques (ex. « 25+10 ») en kg pour le volume. « n » = nombre d’exemplaires que tu possèdes.',
+'Calculs':'Paramètres des calculs de progression : 1RM estimé et part des muscles secondaires.',
+'Formule du 1RM estimé':'Estime la charge maximale sur 1 répétition à partir d’une série (charge × reps). Epley = charge × (1 + reps/30), adaptée de 6 à 12 reps ; Brzycki est plus prudente au-delà de 10 reps. Sert aux records et aux charges proposées en modes 8 / 12 / 15.',
+'Poids d’un muscle secondaire':'Part comptée pour un muscle secondaire dans les repères musculaires et la séance conseillée. 0,5 = une série compte pour une demi-série pour ce muscle ; 0 = seuls les muscles principaux comptent.',
+'Groupes et sous-groupes musculaires':'Les groupes (Dos, Pectoraux…) et sous-groupes (Grand dorsal, Haut…) qui servent à classer les exercices, à calculer les repères et à composer la séance conseillée.',
+'Modes de répétitions':'Modes proposés au démarrage d’une séance (Force 8, Hypertrophie 12, Endurance 15…) avec leur repos. « Normal » garde les objectifs du programme. Les exercices au poids du corps gardent toujours les objectifs du programme.',
+'Mode de répétitions':'Normal = objectifs du programme. Force / Hypertrophie / Endurance = nombre de reps imposé (8 / 12 / 15) avec des charges recalculées depuis ton 1RM estimé. Le mode alterne automatiquement si le programme le prévoit.',
+'Séries':'Dégressives : l’objectif baisse à chaque série (ex. 12 / 10 / échec) avec une charge qui monte. Égales : même objectif et même charge à chaque série.',
+'Enchaînement':'En tours (circuit) : une série de chaque exercice du bloc puis repos. Exercice par exercice : toutes les séries d’un exercice, puis le suivant.',
+'Repos automatique':'Lance le repos tout seul après chaque validation. En mode Normal, ce sont les repos du programme ; sinon, ceux du mode choisi.',
+'Reprise après une pause':'Après un arrêt, les charges proposées sont réduites pour reprendre en douceur, puis remontent séance après séance.',
+'Pause déclenchant la reprise (jours)':'Nombre de jours sans séance à partir duquel le mode reprise est proposé. 0 = mode reprise désactivé.',
+'Réduction des charges (%)':'Baisse appliquée à la 1ʳᵉ séance de reprise. Elle diminue ensuite à chaque séance de reprise (ex. −15 % puis −8 %).',
+'Séances de reprise':'Nombre de séances pour revenir progressivement aux charges normales.',
+'Chrono':'Minuteur des repos, du rest-pause et des transitions, avec sonneries, vibration et décompte.',
+'Temps prédéfinis':'Durées proposées dans le chrono libre (bouton ⏱ en haut de l’écran), séparées par des virgules.',
+'Repos par défaut (s)':'Repos utilisé quand un bloc n’a pas de repos défini (séance improvisée, exercices ajoutés pendant une séance).',
+'Rest-pause par défaut (s)':'Courte pause avant de repartir jusqu’à l’échec quand la case Rest-pause est cochée, si l’exercice n’a pas sa propre durée.',
+'Transition en circuit (s)':'Durée lancée par le bouton « ⏱ … → exercice suivant » entre deux exercices d’un même tour en mode circuit.',
+'Fin du repos / de la pause':'Sonnerie jouée à la fin d’un repos ou d’une pause de fin de bloc.',
+'Fin du rest-pause (pause courte)':'Sonnerie jouée à la fin de la pause courte du rest-pause : c’est le moment de repartir.',
+'Sonneries':'Choix des sons du chrono. Touche ▶ pour écouter avant de choisir.','Volume':'Volume des sonneries du chrono (indépendant du volume des vidéos).','Décompte 3-2-1':'Bips des trois dernières secondes avant la fin du chrono.',
+'Bips sonores':'Active les sons du chrono (décompte et fin).',
+'Vibration à la fin':'Fait vibrer le téléphone à la fin du chrono (Android uniquement).',
+'Garder l’écran allumé':'Empêche la mise en veille de l’écran pendant une séance en cours.',
+'Affichage':'Mise en page et taille du texte. Ces réglages sont propres à cet appareil.',
+'Mise en page':'Automatique : multicolonne sur grand écran (PC, DeX, tablette en paysage), une colonne sur téléphone. Réglage propre à cet appareil.',
+'Taille du texte':'Agrandit tout le texte de l’appli, utile sur un écran éloigné ou en DeX.',
+'Données':'Sauvegarde et restauration de toutes tes données : séances, programmes, modules, exercices, vidéos, réglages. Garde tes fichiers dans OneDrive.',
+'Sauvegarde automatique':'À chaque « Enregistrer » en fin de séance : sur PC, un fichier est écrit dans le dossier choisi ; sur téléphone, le menu de partage s’ouvre (choisis OneDrive).',
+'Animations 3D':'Démonstrations du mannequin. Signale une animation fausse depuis la démo (👁 → 🛠), puis copie la liste pour me l’envoyer.',
+'Points de restauration':'Copies automatiques gardées dans l’appli (10 dernières). En cas de bug ou d’erreur de manipulation, reviens à l’une d’elles. Elles disparaissent si tu effaces les données du navigateur.',
+'Rest-pause (échec + pause + échec)':'Sur quelle(s) série(s) faire un rest-pause : aller à l’échec, courte pause, puis repartir jusqu’à l’échec. Les reps en plus comptent dans le volume.',
+'Rest-pause':'Coché : après la validation, courte pause puis tu repars jusqu’à l’échec et tu saisis les reps en plus (+RP). Elles comptent dans le volume.',
+'Pause (s)':'Durée de la courte pause du rest-pause pour cet exercice.',
+'Pause à la fin du bloc':'Pause après le dernier tour du bloc, avant le bloc suivant : le temps de changer de matériel.',
+'Objectif':'Répétitions visées par tour, séparées par « / » (ex. 12/10/échec). « échec » = jusqu’à ne plus pouvoir. Pour un exercice G/D : par côté.',
+'Élastiques de départ':'Combinaison d’élastiques de départ, ex. « 25+10 » (les noms de ton kit).',
+'Unité de charge':'Comment la charge est saisie : kg, plaques (poulie), élastiques ou coefficient poids du corps.',
+'Type':'Iso(lation) : un seul muscle principal (ex. curl). Poly(articulaire) : plusieurs articulations et muscles (ex. tirage, pompes). Les poly passent en premier dans la séance conseillée.',
+'Sous-groupe (principal)':'Partie du muscle principalement travaillée ; sert aux repères détaillés et à la séance conseillée.',
+'Groupe musculaire':'Muscle principal travaillé par l’exercice.',
+'Ancrage':'Point d’attache des élastiques ou du TRX : haut, médian (milieu de porte), bas ou sous les pieds. Doit être disponible dans le lieu pour que l’exercice soit proposé.',
+'Mesure':'Répétitions ou durée (secondes) pour les exercices de gainage.',
+'Progression %':'Hausse de charge visée quand tu as atteint tous tes objectifs à la séance précédente.',
+'Séances / semaine visées':'Rythme visé, sert au suivi d’avancement du programme.',
+'Animation utilisée':'Animation 3D affichée pour cet exercice ; « auto » = choisie selon le type de mouvement.'};
+function helpKey(t){t=String(t||'').replace(/^[▾▸]\s*/,'').replace(/\s+/g,' ').trim();if(HELP[t])return t;return Object.keys(HELP).find(k=>t.startsWith(k))||null}
+function helpDecorate(root){if(!root)return;root.querySelectorAll('.fld > span, .k, label.chk, .rpt > span').forEach(el=>{if(el.querySelector('.hlp'))return;const k=helpKey(el.textContent);if(!k)return;const b=document.createElement('button');b.className='hlp';b.type='button';b.dataset.a='help';b.dataset.k=k;b.textContent='ⓘ';b.title='Aide';el.appendChild(b)})}
+A.help=el=>{const k=el.dataset.k,t=HELP[k];if(!t)return;let bub=$('#hbub');if(!bub){bub=document.createElement('div');bub.id='hbub';document.body.appendChild(bub)}
+ bub.innerHTML=`<b>${esc(k)}</b><div>${esc(t)}</div>`;bub.hidden=false;const r=el.getBoundingClientRect(),w=Math.min(340,innerWidth-20);bub.style.width=w+'px';bub.style.left=Math.max(10,Math.min(innerWidth-w-10,r.left-w/2))+'px';const top=r.bottom+8;bub.style.top=(top+160>innerHeight?Math.max(10,r.top-8-bub.offsetHeight):top)+'px'};
+document.addEventListener('click',e=>{const b=$('#hbub');if(b&&!b.hidden&&!e.target.closest('.hlp')&&!e.target.closest('#hbub'))b.hidden=true},true);
 
 /* ================= Séance déjà faite (saisie après coup) ================= */
 const pad2=x=>String(x).padStart(2,'0');
